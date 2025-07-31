@@ -24,31 +24,15 @@ now = datetime.now()
 current_time = now.time()
 today_date = now.strftime("%d/%m/%Y")
 today_day = now.strftime("%A")
-# bill_time = now.strftime("%H:%M:%S") # This variable will now be handled by JS for display
 
-
-session = None
-file_name = None
-
-if day_start <= current_time <= day_end:
-    session = "Day"
-    file_name = "day.json"
-elif evening_start <= current_time <= evening_end:
-    session = "Evening"
-    file_name = "evening.json"
-else:
-    st.error("❌ Sorry! Cafe is closed. 😔\n🕒 Working Hours: 10AM–3PM and 5PM–10PM")
-    st.stop() # Stop the app if the cafe is closed
-
-# Display cafe details in the sidebar
+# --- Display cafe details in the sidebar ---
 st.sidebar.header("Cafe Details")
 st.sidebar.write(f"**Session:** {session} Menu")
 st.sidebar.write(f"**Date:** {today_date} ({today_day})")
 
-# --- Live Clock in Sidebar ---
-# HTML and JavaScript for a continuously updating clock
+# --- Live Clock in Sidebar (Explicitly in sidebar) ---
 live_clock_html = """
-<div style="font-weight: bold;">Current Time: <span id="live-time"></span></div>
+<div style="font-weight: bold; padding-bottom: 5px;">Current Time: <span id="live-time"></span></div>
 <script>
     function updateLiveClock() {
         const now = new Date();
@@ -66,7 +50,7 @@ live_clock_html = """
     updateLiveClock();
 </script>
 """
-components.html(live_clock_html, height=30) # Embed the HTML component
+st.sidebar.components.html(live_clock_html, height=50) # Increased height and explicitly in sidebar
 
 # We still need bill_time for saving the order, so let's keep it here for data purposes
 # This 'bill_time' will capture the time when the 'Generate Bill' button is clicked (i.e., when the script runs that part)
@@ -147,7 +131,6 @@ if st.session_state.app_stage == 'customer_details':
                     st.rerun()
             else:
                 st.error("❌ Phone number must contain only digits. Please correct it.")
-                # Important: Do NOT change app_stage or rerun here, let user correct input
         else:
             st.info("Please enter your name and phone number to proceed. (Press Enter after typing in fields)")
             
@@ -177,7 +160,7 @@ elif st.session_state.app_stage == 'menu_view':
     order_choice = st.radio(
         "Would you like to place an order?",
         options=["Yes, I'd like to order", "No, just browsing"],
-        index=0 if st.session_state.current_order_items else 0, # Default to yes, or if already adding items
+        index=0 if st.session_state.current_order_items else 0,
         key="order_prompt_radio"
     )
 
@@ -196,18 +179,14 @@ elif st.session_state.app_stage == 'menu_view':
 elif st.session_state.app_stage == 'ordering':
     st.header(f"Place Your Order for {st.session_state.customer_name}")
 
-    # Collect all available items for the dropdown, including prices
     all_menu_items_formatted = []
-    item_to_price_map = {} # This map remains the same: "Item Name" -> Price
+    item_to_price_map = {}
     for category, items in menu.items():
         for item_name, price in items.items():
             item_to_price_map[item_name] = price
-            all_menu_items_formatted.append(f"{item_name} (₹{price})") # Format for display
+            all_menu_items_formatted.append(f"{item_name} (₹{price})")
     
-    # Sort formatted items alphabetically
     all_menu_items_formatted.sort()
-
-    # Add a default 'Select an item' option
     all_menu_items_formatted.insert(0, "--- Select an item ---")
 
     selected_formatted_item = st.selectbox(
@@ -218,11 +197,9 @@ elif st.session_state.app_stage == 'ordering':
 
     if st.button("Add Selected Item to Order"):
         if selected_formatted_item != "--- Select an item ---":
-            # Extract the actual item name from the formatted string
-            # Example: "Coffee (₹120)" -> "Coffee"
             actual_item_name = selected_formatted_item.split(' (₹')[0] 
             
-            price = item_to_price_map.get(actual_item_name) # Get price using the actual item name
+            price = item_to_price_map.get(actual_item_name)
             if price is not None:
                 st.session_state.current_order_items.append(actual_item_name)
                 st.session_state.current_order_prices.append(price)
@@ -274,7 +251,6 @@ elif st.session_state.app_stage == 'bill_generated':
     st.markdown(f"**Phone Number:** {st.session_state.customer_phone}")
     st.markdown(f"**Visit Session:** {session}")
     st.markdown(f"**Date:** {today_date}")
-    # We use the 'bill_time' captured at the start of the script run that leads to bill generation
     st.markdown(f"**Day:** {today_day}")
     st.markdown(f"**Bill Time:** {bill_time}") 
     
@@ -295,7 +271,7 @@ elif st.session_state.app_stage == 'bill_generated':
         "Visiting_time": session,
         "date": today_date,
         "day": today_day,
-        "bill_time": bill_time, # Save the bill_time captured at the start of this script run
+        "bill_time": bill_time,
         "user_items": st.session_state.current_order_items,
         "user_price": st.session_state.current_order_prices,
         "total": total
@@ -308,7 +284,6 @@ elif st.session_state.app_stage == 'bill_generated':
     except IOError as e:
         st.error(f"Failed to save customer data: {e}. Please check file permissions.")
 
-    # Clear order and customer details from session state after bill is generated and saved
     st.session_state.current_order_items = []
     st.session_state.current_order_prices = []
     st.session_state.customer_name = ""
