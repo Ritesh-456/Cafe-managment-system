@@ -2,17 +2,12 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
-# No need to import streamlit.components.v1 as components if not using live clock
+# Removed: import streamlit.components.v1 as components # Not needed without live clock
 
-# --- Configuration ---
+# --- Configuration & File Paths ---
 CAFE_NAME = "Bhakti's Cafe.com"
 CUSTOMER_DATA_FILE = "customer_data.json"
-
-# Cafe time setup (static times for opening/closing)
-day_start = datetime.strptime("10:00:00", "%H:%M:%S").time()
-day_end = datetime.strptime("15:00:00", "%H:%M:%S").time()
-evening_start = datetime.strptime("17:00:00", "%H:%M:%S").time()
-evening_end = datetime.strptime("22:00:00", "%H:%M:%S").time()
+CONFIG_FILE = "config.json" # New: Centralized config file
 
 # --- Helper Functions ---
 
@@ -38,14 +33,38 @@ def save_json_data(data, file_path):
     except Exception as e:
         st.error(f"Error saving data to '{file_path}': {e}")
 
-def get_cafe_status():
-    """Determines current cafe session and status based on real-time."""
+def load_cafe_config():
+    """Loads cafe operating hours from config.json."""
+    config = load_json_data(CONFIG_FILE)
+    if config:
+        try:
+            return {
+                "day_start": datetime.strptime(config["day_start"], "%H:%M:%S").time(),
+                "day_end": datetime.strptime(config["day_end"], "%H:%M:%S").time(),
+                "evening_start": datetime.strptime(config["evening_start"], "%H:%M:%S").time(),
+                "evening_end": datetime.strptime(config["evening_end"], "%H:%M:%S").time()
+            }
+        except KeyError:
+            st.error(f"Configuration file '{CONFIG_FILE}' is missing required time keys (e.g., 'day_start').")
+            return None
+        except ValueError:
+            st.error(f"Configuration file '{CONFIG_FILE}' contains invalid time formats. Use HH:MM:SS.")
+            return None
+    else:
+        st.error(f"Configuration file '{CONFIG_FILE}' not found or is empty/corrupted.")
+        return None
+
+def get_cafe_status(cafe_hours):
+    """Determines current cafe session and status based on real-time and loaded cafe hours."""
+    if not cafe_hours:
+        return "Error", None, None # Cannot determine status if config failed to load
+
     now = datetime.now()
     current_time = now.time()
     
-    if day_start <= current_time <= day_end:
+    if cafe_hours["day_start"] <= current_time <= cafe_hours["day_end"]:
         return "Day", "day.json", now
-    elif evening_start <= current_time <= evening_end:
+    elif cafe_hours["evening_start"] <= current_time <= cafe_hours["evening_end"]:
         return "Evening", "evening.json", now
     else:
         return "Closed", None, now
@@ -138,13 +157,21 @@ with col3:
 
 st.markdown("---")
 
-# Determine cafe status and load menu based on current real-time
-session, menu_file_name, cafe_status_datetime = get_cafe_status()
+# Load cafe operating hours from config.json
+cafe_hours = load_cafe_config()
+if not cafe_hours:
+    st.error("Cannot start application: Cafe operating hours could not be loaded from config.json. Please ensure it's set up correctly.")
+    st.stop() # Stop the app if config is critical
+
+# Determine cafe status and load menu based on current real-time and loaded cafe hours
+session, menu_file_name, cafe_status_datetime = get_cafe_status(cafe_hours)
 
 if session == "Closed":
     st.error("❌ Sorry! Cafe is closed right now.")
-    st.info(f"🕒 Working Hours: {day_start.strftime('%I%p')}–{day_end.strftime('%I%p')} and {evening_start.strftime('%I%p')}–{evening_end.strftime('%I%p')}")
+    st.info(f"🕒 Working Hours: {cafe_hours['day_start'].strftime('%I%p')}–{cafe_hours['day_end'].strftime('%I%p')} and {cafe_hours['evening_start'].strftime('%I%p')}–{cafe_hours['evening_end'].strftime('%I%p')}")
     st.stop() # Stop the app if cafe is closed
+elif session == "Error":
+    st.stop() # Stop if there was an error loading config (already handled by load_cafe_config)
 else:
     st.success(f"🎉 Cafe is open! Serving our **{session}** menu.")
     menu = load_menu(menu_file_name)
@@ -271,7 +298,8 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
     bill = st.session_state.last_bill_details
     st.markdown("### 🧾 ========== BILL ==========")
     st.write(f"**Customer Name:** {bill['customer_name']}")
-    st.write(f"**Phone Number:** {bill['phone_phone_number']}")
+    # Corrected 'phone_phone_number' to 'phone_number'
+    st.write(f"**Phone Number:** {bill['phone_number']}") 
     st.write(f"**Visit Session:** {bill['visit_session']}")
     st.write(f"**Date:** {bill['date']}")
     st.write(f"**Day:** {bill['day']}")
