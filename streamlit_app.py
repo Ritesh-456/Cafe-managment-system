@@ -70,26 +70,58 @@ if os.path.exists(customer_data_file):
 else:
     st.info(f"'{customer_data_file}' not found. A new one will be created upon the first order.")
 
+# --- Initialize Session State for UI Flow ---
+if 'show_order_section' not in st.session_state:
+    st.session_state.show_order_section = False
+if 'customer_name' not in st.session_state:
+    st.session_state.customer_name = ""
+if 'customer_phone' not in st.session_state:
+    st.session_state.customer_phone = ""
 
-# --- Customer Identity ---
+# --- Customer Identity Section ---
 st.header("Your Details")
 col1_name, col2_phone = st.columns(2)
+
 with col1_name:
-    name = st.text_input("Enter your name:", key="customer_name").strip().capitalize()
+    name = st.text_input("Enter your name:", value=st.session_state.customer_name, key="customer_name_input").strip().capitalize()
 with col2_phone:
-    phone = st.text_input("Enter your phone number:", key="customer_phone").strip()
+    phone = st.text_input("Enter your phone number:", value=st.session_state.customer_phone, key="customer_phone_input").strip()
 
-if not name or not phone:
-    st.info("Please enter your name and phone number to proceed with ordering.")
-else:
-    if name in customer_data:
-        prev_day = customer_data[name].get("day", "previous visit")
-        st.info(f'👋 Hello {name}, once again! Hope you enjoyed that {prev_day.lower()}!')
+# Update session state with the values from text inputs
+st.session_state.customer_name = name
+st.session_state.customer_phone = phone
+
+# Buttons for customer management and proceeding
+col_btn1, col_btn2 = st.columns([1, 1])
+
+with col_btn1:
+    if st.button("New Customer", help="Clear details to enter a new customer."):
+        st.session_state.customer_name = ""
+        st.session_state.customer_phone = ""
+        st.session_state.show_order_section = False # Hide order section for new customer
+        st.rerun() # Rerun to clear input fields and reset flow
+
+with col_btn2:
+    # Only show "Proceed to Order" if name and phone are filled
+    if name and phone:
+        if st.button("Proceed to Order", type="primary", help="Continue to the menu and order placement."):
+            st.session_state.show_order_section = True
+            st.rerun() # Rerun to display the order section
     else:
-        st.success(f"👋 Hello {name}, nice to meet you!")
+        st.info("Please enter your name and phone number to proceed.")
 
-    st.markdown("---")
+# Greeting message
+if st.session_state.customer_name and st.session_state.customer_phone:
+    if st.session_state.customer_name in customer_data:
+        prev_day = customer_data[st.session_state.customer_name].get("day", "previous visit")
+        st.info(f'👋 Hello {st.session_state.customer_name}, once again! Hope you enjoyed that {prev_day.lower()}!')
+    elif st.session_state.show_order_section: # Only show 'nice to meet you' if proceeding to order
+        st.success(f"👋 Hello {st.session_state.customer_name}, nice to meet you!")
 
+st.markdown("---")
+
+# --- Conditional Rendering for Order Section ---
+if st.session_state.show_order_section and st.session_state.customer_name and st.session_state.customer_phone:
     # --- Display Menu ---
     st.header(f"Our Menu ({session} Session)")
     for category, items in menu.items():
@@ -169,8 +201,8 @@ else:
 
                 st.balloons() # Fun visual effect!
                 st.subheader("🧾 Your Final Bill")
-                st.markdown(f"**Customer Name:** {name}")
-                st.markdown(f"**Phone Number:** {phone}")
+                st.markdown(f"**Customer Name:** {st.session_state.customer_name}") # Use session state name
+                st.markdown(f"**Phone Number:** {st.session_state.customer_phone}") # Use session state phone
                 st.markdown(f"**Visit Session:** {session}")
                 st.markdown(f"**Date:** {today_date}")
                 st.markdown(f"**Day:** {today_day}")
@@ -188,8 +220,8 @@ else:
                 st.write("---")
 
                 # Save customer record
-                customer_data[name] = {
-                    "phone_number": phone,
+                customer_data[st.session_state.customer_name] = { # Use session state name
+                    "phone_number": st.session_state.customer_phone, # Use session state phone
                     "Visiting_time": session,
                     "date": today_date,
                     "day": today_day,
