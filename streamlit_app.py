@@ -134,7 +134,7 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
     }
 
     # Save customer record
-    customer_data = load_json_data(CUSTOMER_DATA_FILE) or {}
+    customer_data = load_json_data(CUSTOMER_DATA_FILE) or {} # Initialize if file doesn't exist/corrupt
     customer_data[customer_name] = {
         "phone_number": customer_phone,
         "Visiting_time": session,
@@ -316,7 +316,7 @@ else:
                     st.session_state.customer_phone, 
                     st.session_state.current_order, # Passing dictionary now
                     all_menu_items, 
-                    session # Removed cafe_status_datetime as it's not needed by the function
+                    session 
                 )
     else:
         st.info("Your order is empty. Please select items from the menu.")
