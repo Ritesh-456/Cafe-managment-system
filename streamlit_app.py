@@ -2,12 +2,11 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
-# Removed: import streamlit.components.v1 as components # Not needed without live clock
 
 # --- Configuration & File Paths ---
 CAFE_NAME = "Bhakti's Cafe.com"
 CUSTOMER_DATA_FILE = "customer_data.json"
-CONFIG_FILE = "config.json" # New: Centralized config file
+CONFIG_FILE = "config.json" # Centralized config file for cafe hours
 
 # --- Helper Functions ---
 
@@ -74,11 +73,25 @@ def load_menu(file_name):
     return load_json_data(file_name)
 
 def generate_and_save_bill(customer_name, customer_phone, current_order, all_menu_items, session):
-    """Calculates bill, saves customer data, and updates session state for display."""
+    """Calculates bill, applies discounts, saves customer data, and updates session state for display."""
     # current_order is now a dict {item_name: quantity}
-    subtotal = sum(all_menu_items.get(item, 0) * qty for item, qty in current_order.items())
-    gst = round(subtotal * 0.18, 2)
-    total = round(subtotal + gst, 2)
+    initial_subtotal = sum(all_menu_items.get(item, 0) * qty for item, qty in current_order.items())
+    
+    total_items_count = sum(current_order.values())
+    discount_percentage = 0.0
+
+    if total_items_count > 11:
+        discount_percentage = 0.09 # 9% for more than 11 items
+    elif total_items_count > 8:
+        discount_percentage = 0.06 # 6% for more than 8 items
+    elif total_items_count > 5:
+        discount_percentage = 0.03 # 3% for more than 5 items
+
+    discount_amount = round(initial_subtotal * discount_percentage, 2)
+    subtotal_after_discount = round(initial_subtotal - discount_amount, 2)
+
+    gst = round(subtotal_after_discount * 0.18, 2)
+    total = round(subtotal_after_discount + gst, 2)
     
     bill_moment_datetime = datetime.now() # Capture exact time of bill generation
     bill_gen_time = bill_moment_datetime.strftime("%H:%M:%S")
@@ -87,7 +100,6 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
 
     # Prepare data for session state bill display
     items_ordered_for_display = []
-    # No need for item_counts here since current_order already has quantities
     for item, qty in current_order.items():
         price_per_item = all_menu_items.get(item, 0)
         item_total = price_per_item * qty
@@ -96,7 +108,6 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
         )
     
     # Prepare data for original customer_data.json structure (repeated items for quantity)
-    # This recreates the flat list for compatibility with existing customer_data.json structure
     ordered_items_list_for_save = []
     ordered_prices_list_for_save = []
     for item, qty in current_order.items():
@@ -113,13 +124,17 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
         "day": bill_day,
         "bill_generation_time": bill_gen_time,
         "items_ordered": items_ordered_for_display,
-        "subtotal": subtotal,
+        "initial_subtotal": initial_subtotal, # Store initial subtotal
+        "total_items_count": total_items_count, # Store item count
+        "discount_percentage": discount_percentage * 100, # Store as %
+        "discount_amount": discount_amount,
+        "subtotal_after_discount": subtotal_after_discount, # Store discounted subtotal
         "gst": gst,
         "total": total
     }
 
     # Save customer record
-    customer_data = load_json_data(CUSTOMER_DATA_FILE) or {} # Initialize if file doesn't exist/corrupt
+    customer_data = load_json_data(CUSTOMER_DATA_FILE) or {}
     customer_data[customer_name] = {
         "phone_number": customer_phone,
         "Visiting_time": session,
@@ -128,6 +143,8 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
         "bill_time": bill_gen_time,
         "user_items": ordered_items_list_for_save,
         "user_price": ordered_prices_list_for_save,
+        "total_items_count": total_items_count, # Save item count
+        "discount_applied_percent": discount_percentage * 100, # Save discount
         "total": total
     }
     save_json_data(customer_data, CUSTOMER_DATA_FILE)
@@ -211,7 +228,7 @@ if not st.session_state.customer_name or not st.session_state.customer_phone:
 
                 customer_data = load_json_data(CUSTOMER_DATA_FILE) or {} # Load data here to check for revisit
                 
-                # MODIFIED GREETING HERE
+                # Greet revisiting customers
                 if name_input in customer_data:
                     st.info(f'👋 Hello, {name_input} thank you for revisiting!')
                 else:
@@ -222,7 +239,6 @@ if not st.session_state.customer_name or not st.session_state.customer_phone:
                 st.warning("Please enter both your name and phone number.")
 else:
     # Order Section (shown only if identity is confirmed)
-    # The 'Hello, {name}' greeting is displayed here, as the form is now hidden
     st.subheader(f"Hello, {st.session_state.customer_name}! Here's our {session} Menu:")
 
     # Display Menu and Order Selection
@@ -321,9 +337,14 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
         st.write(f"- {item_detail['item']} (x{item_detail['quantity']}): ₹{item_detail['total_item_price']:.2f}")
     
     st.markdown("---")
-    st.write(f"**Subtotal:** ₹{bill['subtotal']:.2f}")
+    st.write(f"**Subtotal (before discount):** ₹{bill['initial_subtotal']:.2f}")
+    st.write(f"**Total Items:** {bill['total_items_count']}")
+    if bill['discount_percentage'] > 0:
+        st.write(f"**Discount Applied:** {bill['discount_percentage']:.0f}% (₹{bill['discount_amount']:.2f})")
+        st.write(f"**Subtotal (after discount):** ₹{bill['subtotal_after_discount']:.2f}")
+    
     st.write(f"**GST (18%):** ₹{bill['gst']:.2f}")
-    st.markdown(f"### **Total Payable:** ₹{bill['total']:.2f}/-")
+    st.markdown(f"## **Total Payable:** ₹{bill['total']:.2f}/-")
     st.markdown("=============================")
 
     # New buttons after bill generation for workflow clarity
