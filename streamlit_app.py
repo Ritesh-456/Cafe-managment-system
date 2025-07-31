@@ -2,7 +2,7 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
-import streamlit.components.v1 as components
+import streamlit.components.v1 as components # Import for custom HTML
 
 # --- Cafe Time Setup ---
 day_start = datetime.strptime("10:00:00", "%H:%M:%S").time()
@@ -38,12 +38,12 @@ else:
     st.error("❌ Sorry! Cafe is closed. 😔\n🕒 Working Hours: 10AM–3PM and 5PM–10PM")
     st.stop() # Stop the app if the cafe is closed
 
-# --- Now that 'session' is definitely set (or app stopped), display sidebar details ---
+# --- Display cafe details in the sidebar ---
 st.sidebar.header("Cafe Details")
 st.sidebar.write(f"**Session:** {session} Menu") # This line is now safe
 st.sidebar.write(f"**Date:** {today_date} ({today_day})")
 
-# --- Live Clock in Sidebar ---
+# --- Live Clock in Sidebar (Corrected placement) ---
 live_clock_html = """
 <div style="font-weight: bold; padding-bottom: 5px;">Current Time: <span id="live-time"></span></div>
 <script>
@@ -61,7 +61,9 @@ live_clock_html = """
     updateLiveClock();
 </script>
 """
-st.sidebar.components.html(live_clock_html, height=50)
+# CORRECTED LINE: Call components.html inside the st.sidebar block
+with st.sidebar:
+    components.html(live_clock_html, height=50)
 
 # bill_time for saving the order (captured at the start of the script run)
 bill_time = now.strftime("%H:%M:%S")
