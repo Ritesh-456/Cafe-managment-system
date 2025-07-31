@@ -110,6 +110,8 @@ with st.form("customer_form"):
         else:
             st.success(f"👋 Hello {name}, nice to meet you!")
 
+# Keep customer name and phone number if they exist in session state
+# This prevents clearing them and redirecting to the form
 if not st.session_state.customer_name or not st.session_state.customer_phone:
     st.warning("Please enter your name and phone number to proceed with ordering.")
 else:
@@ -118,8 +120,6 @@ else:
     # Display Menu and Order Selection
     st.markdown("---")
     st.subheader("Menu Items")
-
-    order_form_key = 0 # To reset form if needed
 
     # Collect all items and their prices for easy lookup
     all_menu_items = {}
@@ -222,13 +222,22 @@ else:
                 save_customer_data(customer_data)
                 st.success("✅ Order saved. Thank you for visiting!")
                 
-                # Clear order after bill generation for a new order
+                # Clear ONLY the order after bill generation for a new order,
+                # but keep customer details if they want to order again.
                 st.session_state.current_order = {}
-                st.session_state.customer_name = ""
-                st.session_state.customer_phone = ""
-                st.rerun() # Rerun to clear inputs and order
+                # st.session_state.customer_name = ""  <-- REMOVE OR COMMENT THIS LINE
+                # st.session_state.customer_phone = "" <-- REMOVE OR COMMENT THIS LINE
+                st.rerun() # Rerun to clear order selection widgets
     else:
         st.info("Your order is empty. Please select items from the menu.")
+
+# Optional: Add a button to start a completely new customer order
+if st.session_state.customer_name or st.session_state.current_order: # Show only if there's an active customer/order
+    if st.button("Start New Customer Order"):
+        st.session_state.customer_name = ""
+        st.session_state.customer_phone = ""
+        st.session_state.current_order = {}
+        st.rerun()
 
 st.markdown("---")
 st.markdown("🙏 Thank you for stopping by. See you again!")
