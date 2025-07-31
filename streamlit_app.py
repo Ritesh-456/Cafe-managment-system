@@ -110,33 +110,40 @@ else:
     if 'current_order_prices' not in st.session_state:
         st.session_state.current_order_prices = []
 
-    # Input for adding items
-    # To clear the input field, we will set its default value to an empty string on each run.
-    # The trick is to trigger a rerun after adding an item.
-    item_input = st.text_input("Enter a dish name to add to your order:", key="item_input_field")
+    # Collect all available items for the dropdown
+    all_menu_items = []
+    item_to_price_map = {} # To quickly get the price of a selected item
+    for category, items in menu.items():
+        for item_name, price in items.items():
+            all_menu_items.append(item_name)
+            item_to_price_map[item_name] = price
+    
+    # Sort items alphabetically for better user experience
+    all_menu_items.sort()
 
+    # Add a default 'Select an item' option
+    all_menu_items.insert(0, "--- Select an item ---")
 
-    if st.button("Add Item to Order"):
-        if item_input: # Ensure input is not empty
-            found = False
-            for cat_items in menu.values():
-                for item_name, price in cat_items.items():
-                    if item_name.lower() == item_input.lower():
-                        st.session_state.current_order_items.append(item_name)
-                        st.session_state.current_order_prices.append(price)
-                        st.success(f"✅ '{item_name}' added to your order.")
-                        found = True
-                        # Instead of directly modifying the session state linked to the key,
-                        # trigger a rerun. This will cause the text_input to re-render with
-                        # its default empty value.
-                        st.rerun() # Rerun to clear the input field
-                        break
-                if found:
-                    break
-            if not found:
-                st.error(f"❌ Item '{item_input}' not found in the menu. Please check spelling.")
+    # Dropdown menu for selecting items
+    selected_item = st.selectbox(
+        "Choose a dish to add to your order:",
+        options=all_menu_items,
+        key="item_selector" # Unique key for the selectbox
+    )
+
+    if st.button("Add Selected Item to Order"):
+        if selected_item != "--- Select an item ---": # Check if a valid item was selected
+            price = item_to_price_map.get(selected_item) # Get price from our map
+            if price is not None:
+                st.session_state.current_order_items.append(selected_item)
+                st.session_state.current_order_prices.append(price)
+                st.success(f"✅ '{selected_item}' added to your order.")
+                # Force a rerun to reset the selectbox to its default state
+                st.rerun()
+            else:
+                st.error(f"❌ Price for '{selected_item}' not found (internal error).")
         else:
-            st.warning("Please enter an item name to add.")
+            st.warning("Please select a dish from the dropdown before adding.")
 
     st.markdown("---")
     st.subheader("📝 Your Current Order")
@@ -206,7 +213,7 @@ else:
             else:
                 st.warning("Your order is empty. Please add items before generating the bill.")
     else:
-        st.info("Your order is currently empty. Use the text input and 'Add Item' button above.")
+        st.info("Your order is currently empty. Use the dropdown and 'Add Item' button above.")
 
 st.markdown("---")
 st.write("Developed with ❤️ for Dill-Khus Cafe")
