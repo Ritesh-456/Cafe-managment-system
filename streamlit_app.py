@@ -111,7 +111,8 @@ if st.session_state.app_stage == 'customer_details':
 
     with col_btn2:
         if st.session_state.customer_name and st.session_state.customer_phone:
-            if st.button("View Menu", type="primary", help="Proceed to view the cafe menu."):
+            # Changed "View Menu" to "Process"
+            if st.button("Process", type="primary", help="Continue with the entered customer details."):
                 st.session_state.app_stage = 'menu_view'
                 st.rerun()
         else:
