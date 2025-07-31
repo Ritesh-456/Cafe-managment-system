@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="auto"
 )
 
-st.title("☕ Welcome to Dill-Khus Cafe")
+st.title("☕ Welcome to Bhakti's Cafe")
 
 # --- Determine Current Time and Session ---
 now = datetime.now()
