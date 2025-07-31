@@ -22,6 +22,7 @@ def load_customer_data():
             with open(CUSTOMER_DATA_FILE, "r") as f:
                 return json.load(f)
         except json.JSONDecodeError:
+            # Handle empty or corrupted JSON file
             return {}
     return {}
 
@@ -48,6 +49,7 @@ def load_menu(file_name):
         with open(file_name, 'r') as f:
             return json.load(f)
     except FileNotFoundError:
+        st.error(f"Menu file '{file_name}' not found. Please ensure it exists.")
         return None
 
 # --- Streamlit UI ---
@@ -79,16 +81,19 @@ else:
     st.success(f"🎉 Cafe is open! Serving our **{session}** menu.")
     menu = load_menu(menu_file)
     if not menu:
-        st.error(f"Menu file '{menu_file}' not found. Please contact staff.")
-        st.stop()
+        st.stop() # Stop if menu couldn't be loaded
 
-# Initialize session state for customer details and order
+# Initialize session state for customer details, order, and bill display
 if 'customer_name' not in st.session_state:
     st.session_state.customer_name = ""
 if 'customer_phone' not in st.session_state:
     st.session_state.customer_phone = ""
 if 'current_order' not in st.session_state:
     st.session_state.current_order = {} # Stores {item_name: quantity}
+if 'show_bill' not in st.session_state:
+    st.session_state.show_bill = False
+if 'last_bill_details' not in st.session_state:
+    st.session_state.last_bill_details = None
 
 st.header("Place Your Order")
 
@@ -104,14 +109,17 @@ with st.form("customer_form"):
     if submitted_identity:
         st.session_state.customer_name = name
         st.session_state.customer_phone = phone
+        # If customer identity is confirmed/changed, hide any previous bill
+        st.session_state.show_bill = False 
+        st.session_state.last_bill_details = None
         if name in customer_data:
             prev_day = customer_data[name].get("day", "N/A")
             st.info(f'👋 Hello {name}, once again! Hope you enjoyed that {prev_day.lower()}!')
         else:
             st.success(f"👋 Hello {name}, nice to meet you!")
+        # To make sure order selection is refreshed with cleared bill display
+        st.rerun() 
 
-# Keep customer name and phone number if they exist in session state
-# This prevents clearing them and redirecting to the form
 if not st.session_state.customer_name or not st.session_state.customer_phone:
     st.warning("Please enter your name and phone number to proceed with ordering.")
 else:
@@ -126,10 +134,11 @@ else:
     for category, items in menu.items():
         all_menu_items.update(items)
 
-    selected_items_display = []
-    
     with st.form(key="order_selection_form"):
         st.write("Select the items you'd like to order and specify quantities.")
+        
+        # This flag tracks if any quantity changed in this form submission
+        order_changed_in_form = False 
         
         for category, items in menu.items():
             st.markdown(f"**__{category}__**")
@@ -144,20 +153,30 @@ else:
                                               step=1, 
                                               key=f"qty_{item_name}")
                     if new_qty > 0:
-                        st.session_state.current_order[item_name] = new_qty
+                        if st.session_state.current_order.get(item_name) != new_qty:
+                            st.session_state.current_order[item_name] = new_qty
+                            order_changed_in_form = True
                     elif item_name in st.session_state.current_order and new_qty == 0:
-                        del st.session_state.current_order[item_name] # Remove if quantity is 0
+                        del st.session_state.current_order[item_name]
+                        order_changed_in_form = True
                 col_idx = (col_idx + 1) % 3
 
-        st.form_submit_button("Update Order")
+        submit_order_button = st.form_submit_button("Update Order")
+        if submit_order_button and order_changed_in_form:
+            # If the order is explicitly updated, hide any previously generated bill
+            st.session_state.show_bill = False
+            st.session_state.last_bill_details = None # Clear bill details
+            st.toast("Order updated!")
+            st.rerun() # Rerun to reflect updated order immediately
 
     st.markdown("---")
     st.subheader("Your Current Order")
+
     if st.session_state.current_order:
         order_details = []
         subtotal = 0
         for item, qty in st.session_state.current_order.items():
-            price_per_item = all_menu_items.get(item, 0) # Get price from all_menu_items
+            price_per_item = all_menu_items.get(item, 0)
             item_total = price_per_item * qty
             order_details.append(f"{item} x {qty} : ₹{item_total:.2f}")
             subtotal += item_total
@@ -168,7 +187,8 @@ else:
         st.write(f"**Subtotal: ₹{subtotal:.2f}**")
 
         if st.button("Generate Bill"):
-            if not st.session_state.current_order:
+            # This check is technically redundant here because the button only appears if current_order is not empty
+            if not st.session_state.current_order: 
                 st.warning("Your cart is empty. Please add items to generate a bill.")
             else:
                 # Calculate bill
@@ -178,37 +198,36 @@ else:
                 # Get current time for bill generation
                 bill_gen_time = datetime.now().strftime("%H:%M:%S")
 
-                st.success("🧾 Bill Generated!")
-                st.markdown("### ========== BILL ==========")
-                st.write(f"**Customer Name:** {st.session_state.customer_name}")
-                st.write(f"**Phone Number:** {st.session_state.customer_phone}")
-                st.write(f"**Visit Session:** {session}")
-                st.write(f"**Date:** {current_datetime.strftime('%d/%m/%Y')}")
-                st.write(f"**Day:** {current_datetime.strftime('%A')}")
-                st.write(f"**Bill Generation Time:** {bill_gen_time}") # Specific time for bill
-                st.markdown("---")
-                st.write("**Items Ordered:**")
-                for item, qty in st.session_state.current_order.items():
-                    price_per_item = all_menu_items.get(item, 0)
-                    st.write(f"- {item} (x{qty}): ₹{price_per_item * qty:.2f}")
+                # Store bill details in session state to display after rerun
+                st.session_state.last_bill_details = {
+                    "customer_name": st.session_state.customer_name,
+                    "phone_number": st.session_state.customer_phone,
+                    "visit_session": session,
+                    "date": current_datetime.strftime('%d/%m/%Y'),
+                    "day": current_datetime.strftime('%A'),
+                    "bill_generation_time": bill_gen_time, # Specific time for bill
+                    "items_ordered": [], 
+                    "subtotal": subtotal,
+                    "gst": gst,
+                    "total": total
+                }
                 
-                st.markdown("---")
-                st.write(f"**Subtotal:** ₹{subtotal:.2f}")
-                st.write(f"**GST (18%):** ₹{gst:.2f}")
-                st.markdown(f"### **Total Payable: ₹{total:.2f}/-**")
-                st.markdown("=============================")
-
-                # Save customer record
-                customer_data = load_customer_data()
-                
+                # Populate items_ordered for saving and display
                 ordered_items_list = []
                 ordered_prices_list = []
                 for item, qty in st.session_state.current_order.items():
                     price_per_item = all_menu_items.get(item, 0)
-                    for _ in range(qty): # Add item and its price as many times as quantity
+                    item_total = price_per_item * qty
+                    st.session_state.last_bill_details["items_ordered"].append(
+                        {"item": item, "quantity": qty, "price_per_unit": price_per_item, "total_item_price": item_total}
+                    )
+                    # For original customer_data.json structure
+                    for _ in range(qty): 
                         ordered_items_list.append(item)
                         ordered_prices_list.append(price_per_item)
 
+                # Save customer record
+                customer_data = load_customer_data()
                 customer_data[st.session_state.customer_name] = {
                     "phone_number": st.session_state.customer_phone,
                     "Visiting_time": session,
@@ -222,21 +241,48 @@ else:
                 save_customer_data(customer_data)
                 st.success("✅ Order saved. Thank you for visiting!")
                 
-                # Clear ONLY the order after bill generation for a new order,
-                # but keep customer details if they want to order again.
-                st.session_state.current_order = {}
-                # st.session_state.customer_name = ""  <-- REMOVE OR COMMENT THIS LINE
-                # st.session_state.customer_phone = "" <-- REMOVE OR COMMENT THIS LINE
-                st.rerun() # Rerun to clear order selection widgets
+                # Set flag to show bill and clear current order for next interaction
+                st.session_state.show_bill = True
+                st.session_state.current_order = {} 
+                st.rerun() # Trigger a rerun to display the bill and clear the order inputs
     else:
         st.info("Your order is empty. Please select items from the menu.")
 
-# Optional: Add a button to start a completely new customer order
-if st.session_state.customer_name or st.session_state.current_order: # Show only if there's an active customer/order
+# --- Display the generated bill (separate from generation logic) ---
+# This block will execute on the rerun triggered by "Generate Bill"
+if st.session_state.show_bill and st.session_state.last_bill_details:
+    bill = st.session_state.last_bill_details
+    st.markdown("### 🧾 ========== BILL ==========")
+    st.write(f"**Customer Name:** {bill['customer_name']}")
+    st.write(f"**Phone Number:** {bill['phone_number']}")
+    st.write(f"**Visit Session:** {bill['visit_session']}")
+    st.write(f"**Date:** {bill['date']}")
+    st.write(f"**Day:** {bill['day']}")
+    st.write(f"**Bill Generation Time:** {bill['bill_generation_time']}")
+    st.markdown("---")
+    st.write("**Items Ordered:**")
+    for item_detail in bill['items_ordered']:
+        st.write(f"- {item_detail['item']} (x{item_detail['quantity']}): ₹{item_detail['total_item_price']:.2f}")
+    
+    st.markdown("---")
+    st.write(f"**Subtotal:** ₹{bill['subtotal']:.2f}")
+    st.write(f"**GST (18%):** ₹{bill['gst']:.2f}")
+    st.markdown(f"### **Total Payable: ₹{bill['total']:.2f}/-**")
+    st.markdown("=============================")
+    
+    # Optionally, provide a button to clear the bill display if user wants
+    # or let it persist until a new order is started.
+
+# --- "Start New Customer Order" Button ---
+# This button clears everything and allows for a fresh start.
+if st.session_state.customer_name or st.session_state.current_order or st.session_state.show_bill:
+    st.markdown("---") # Separator for clarity
     if st.button("Start New Customer Order"):
         st.session_state.customer_name = ""
         st.session_state.customer_phone = ""
         st.session_state.current_order = {}
+        st.session_state.show_bill = False 
+        st.session_state.last_bill_details = None
         st.rerun()
 
 st.markdown("---")
