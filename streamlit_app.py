@@ -11,12 +11,12 @@ evening_end = datetime.strptime("22:00:00", "%H:%M:%S").time()
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(
-    page_title="Bhakti's Cafe",
+    page_title="Dill-Khus Cafe",
     layout="wide",
     initial_sidebar_state="auto"
 )
 
-st.title("☕ Welcome to Bhakti's Cafe")
+st.title("☕ Welcome to Dill-Khus Cafe")
 
 # --- Determine Current Time and Session ---
 now = datetime.now()
@@ -111,11 +111,15 @@ if st.session_state.app_stage == 'customer_details':
 
     with col_btn2:
         if st.session_state.customer_name and st.session_state.customer_phone:
-            if st.button("Process", type="primary", help="Continue with the entered customer details."):
-                st.session_state.app_stage = 'menu_view'
-                st.rerun()
+            # Add validation for phone number
+            if st.session_state.customer_phone.isdigit(): # Check if phone number contains only digits
+                if st.button("Process", type="primary", help="Continue with the entered customer details."):
+                    st.session_state.app_stage = 'menu_view'
+                    st.rerun()
+            else:
+                st.error("❌ Phone number must contain only digits. Please correct it.")
+                # Important: Do NOT change app_stage or rerun here, let user correct input
         else:
-            # Added a hint to the user here
             st.info("Please enter your name and phone number to proceed. (Press Enter after typing in fields)")
             
     # Greeting message for existing/new customer after inputs are available
@@ -286,4 +290,4 @@ elif st.session_state.app_stage == 'bill_generated':
         st.rerun()
 
 st.markdown("---")
-st.write("Developed with ❤️ for Bhakti's Cafe")
+st.write("Developed with ❤️ for Dill-Khus Cafe")
