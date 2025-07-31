@@ -2,7 +2,7 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
-import streamlit.components.v1 as components # Import for custom HTML
+import streamlit.components.v1 as components
 
 # --- Cafe Time Setup ---
 day_start = datetime.strptime("10:00:00", "%H:%M:%S").time()
@@ -25,12 +25,25 @@ current_time = now.time()
 today_date = now.strftime("%d/%m/%Y")
 today_day = now.strftime("%A")
 
-# --- Display cafe details in the sidebar ---
+session = None
+file_name = None
+
+if day_start <= current_time <= day_end:
+    session = "Day"
+    file_name = "day.json"
+elif evening_start <= current_time <= evening_end:
+    session = "Evening"
+    file_name = "evening.json"
+else:
+    st.error("❌ Sorry! Cafe is closed. 😔\n🕒 Working Hours: 10AM–3PM and 5PM–10PM")
+    st.stop() # Stop the app if the cafe is closed
+
+# --- Now that 'session' is definitely set (or app stopped), display sidebar details ---
 st.sidebar.header("Cafe Details")
-st.sidebar.write(f"**Session:** {session} Menu")
+st.sidebar.write(f"**Session:** {session} Menu") # This line is now safe
 st.sidebar.write(f"**Date:** {today_date} ({today_day})")
 
-# --- Live Clock in Sidebar (Explicitly in sidebar) ---
+# --- Live Clock in Sidebar ---
 live_clock_html = """
 <div style="font-weight: bold; padding-bottom: 5px;">Current Time: <span id="live-time"></span></div>
 <script>
@@ -44,16 +57,13 @@ live_clock_html = """
             liveTimeElement.innerText = `${hours}:${minutes}:${seconds}`;
         }
     }
-    // Update every second
     setInterval(updateLiveClock, 1000);
-    // Initial call to display time immediately
     updateLiveClock();
 </script>
 """
-st.sidebar.components.html(live_clock_html, height=50) # Increased height and explicitly in sidebar
+st.sidebar.components.html(live_clock_html, height=50)
 
-# We still need bill_time for saving the order, so let's keep it here for data purposes
-# This 'bill_time' will capture the time when the 'Generate Bill' button is clicked (i.e., when the script runs that part)
+# bill_time for saving the order (captured at the start of the script run)
 bill_time = now.strftime("%H:%M:%S")
 
 
@@ -117,15 +127,14 @@ if st.session_state.app_stage == 'customer_details':
         if st.button("New Customer", help="Clear details to enter a new customer."):
             st.session_state.customer_name = ""
             st.session_state.customer_phone = ""
-            st.session_state.current_order_items = [] # Clear any previous order in session
+            st.session_state.current_order_items = []
             st.session_state.current_order_prices = []
-            st.session_state.app_stage = 'customer_details' # Stay on this stage, but clear inputs
-            st.rerun() # Rerun to clear input fields and reset flow
+            st.session_state.app_stage = 'customer_details'
+            st.rerun()
 
     with col_btn2:
         if st.session_state.customer_name and st.session_state.customer_phone:
-            # Add validation for phone number
-            if st.session_state.customer_phone.isdigit(): # Check if phone number contains only digits
+            if st.session_state.customer_phone.isdigit():
                 if st.button("Process", type="primary", help="Continue with the entered customer details."):
                     st.session_state.app_stage = 'menu_view'
                     st.rerun()
@@ -134,7 +143,6 @@ if st.session_state.app_stage == 'customer_details':
         else:
             st.info("Please enter your name and phone number to proceed. (Press Enter after typing in fields)")
             
-    # Greeting message for existing/new customer after inputs are available
     if st.session_state.customer_name and st.session_state.customer_phone:
         if st.session_state.customer_name in customer_data:
             prev_day = customer_data[st.session_state.customer_name].get("day", "previous visit")
