@@ -49,15 +49,17 @@ st.title(f"☕ Welcome to {CAFE_NAME}")
 # Show current time on dashboard
 st.subheader("Current Time & Date")
 
-# Get datetime once at script execution start for current date/day display
-# The live clock will update in real-time using JavaScript.
-current_app_load_datetime = datetime.now() 
+# --- MODIFIED PART STARTS HERE ---
+# Get datetime for the dashboard display *each time the script runs*
+now_for_dashboard = datetime.now() 
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Date", current_app_load_datetime.strftime("%d/%m/%Y"))
+    st.metric("Date", now_for_dashboard.strftime("%d/%m/%Y")) # Use now_for_dashboard
 with col2:
-    st.metric("Day", current_app_load_datetime.strftime("%A"))
+    st.metric("Day", now_for_dashboard.strftime("%A"))      # Use now_for_dashboard
+# --- MODIFIED PART ENDS HERE ---
+
 with col3:
     # Live Clock using Streamlit Components (JavaScript)
     components.html(
