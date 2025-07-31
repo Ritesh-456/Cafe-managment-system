@@ -71,107 +71,122 @@ else:
     st.info(f"'{customer_data_file}' not found. A new one will be created upon the first order.")
 
 # --- Initialize Session State for UI Flow ---
-if 'show_order_section' not in st.session_state:
-    st.session_state.show_order_section = False
+# app_stage can be: 'customer_details', 'menu_view', 'ordering', 'bill_generated'
+if 'app_stage' not in st.session_state:
+    st.session_state.app_stage = 'customer_details'
 if 'customer_name' not in st.session_state:
     st.session_state.customer_name = ""
 if 'customer_phone' not in st.session_state:
     st.session_state.customer_phone = ""
+if 'current_order_items' not in st.session_state:
+    st.session_state.current_order_items = []
+if 'current_order_prices' not in st.session_state:
+    st.session_state.current_order_prices = []
 
-# --- Customer Identity Section ---
-st.header("Your Details")
-col1_name, col2_phone = st.columns(2)
+# --- Customer Details Stage ---
+if st.session_state.app_stage == 'customer_details':
+    st.header("Your Details")
+    col1_name, col2_phone = st.columns(2)
 
-with col1_name:
-    name = st.text_input("Enter your name:", value=st.session_state.customer_name, key="customer_name_input").strip().capitalize()
-with col2_phone:
-    phone = st.text_input("Enter your phone number:", value=st.session_state.customer_phone, key="customer_phone_input").strip()
+    with col1_name:
+        name_input = st.text_input("Enter your name:", value=st.session_state.customer_name, key="customer_name_input").strip().capitalize()
+    with col2_phone:
+        phone_input = st.text_input("Enter your phone number:", value=st.session_state.customer_phone, key="customer_phone_input").strip()
 
-# Update session state with the values from text inputs
-st.session_state.customer_name = name
-st.session_state.customer_phone = phone
+    # Update session state with the values from text inputs
+    st.session_state.customer_name = name_input
+    st.session_state.customer_phone = phone_input
 
-# Buttons for customer management and proceeding
-col_btn1, col_btn2 = st.columns([1, 1])
+    # Buttons for customer management and proceeding
+    col_btn1, col_btn2 = st.columns([1, 1])
 
-with col_btn1:
-    if st.button("New Customer", help="Clear details to enter a new customer."):
-        st.session_state.customer_name = ""
-        st.session_state.customer_phone = ""
-        st.session_state.show_order_section = False # Hide order section for new customer
-        st.rerun() # Rerun to clear input fields and reset flow
+    with col_btn1:
+        if st.button("New Customer", help="Clear details to enter a new customer."):
+            st.session_state.customer_name = ""
+            st.session_state.customer_phone = ""
+            st.session_state.current_order_items = [] # Clear any previous order in session
+            st.session_state.current_order_prices = []
+            st.session_state.app_stage = 'customer_details' # Stay on this stage, but clear inputs
+            st.rerun() # Rerun to clear input fields and reset flow
 
-with col_btn2:
-    # Only show "Proceed to Order" if name and phone are filled
-    if name and phone:
-        if st.button("Proceed to Order", type="primary", help="Continue to the menu and order placement."):
-            st.session_state.show_order_section = True
-            st.rerun() # Rerun to display the order section
-    else:
-        st.info("Please enter your name and phone number to proceed.")
+    with col_btn2:
+        if st.session_state.customer_name and st.session_state.customer_phone:
+            if st.button("View Menu", type="primary", help="Proceed to view the cafe menu."):
+                st.session_state.app_stage = 'menu_view'
+                st.rerun()
+        else:
+            st.info("Please enter your name and phone number to proceed.")
+            
+    # Greeting message for existing/new customer after inputs are available
+    if st.session_state.customer_name and st.session_state.customer_phone:
+        if st.session_state.customer_name in customer_data:
+            prev_day = customer_data[st.session_state.customer_name].get("day", "previous visit")
+            st.info(f'👋 Hello {st.session_state.customer_name}, once again! Hope you enjoyed that {prev_day.lower()}!')
+        else:
+            st.success(f"👋 Hello {st.session_state.customer_name}, nice to meet you!")
 
-# Greeting message
-if st.session_state.customer_name and st.session_state.customer_phone:
-    if st.session_state.customer_name in customer_data:
-        prev_day = customer_data[st.session_state.customer_name].get("day", "previous visit")
-        st.info(f'👋 Hello {st.session_state.customer_name}, once again! Hope you enjoyed that {prev_day.lower()}!')
-    elif st.session_state.show_order_section: # Only show 'nice to meet you' if proceeding to order
-        st.success(f"👋 Hello {st.session_state.customer_name}, nice to meet you!")
+    st.markdown("---")
 
-st.markdown("---")
-
-# --- Conditional Rendering for Order Section ---
-if st.session_state.show_order_section and st.session_state.customer_name and st.session_state.customer_phone:
-    # --- Display Menu ---
-    st.header(f"Our Menu ({session} Session)")
+# --- Menu View Stage ---
+elif st.session_state.app_stage == 'menu_view':
+    st.header(f"Our Menu ({session} Session) for {st.session_state.customer_name}")
     for category, items in menu.items():
-        with st.expander(f"**{category}**", expanded=True): # Expanders make the menu collapsible
+        with st.expander(f"**{category}**", expanded=True):
             st.markdown("---")
             for item, price in items.items():
                 st.markdown(f"- **{item}**: ₹{price}")
             st.markdown("---")
 
     st.markdown("---")
+    
+    st.subheader("Ready to order?")
+    order_choice = st.radio(
+        "Would you like to place an order?",
+        options=["Yes, I'd like to order", "No, just browsing"],
+        index=0 if st.session_state.current_order_items else 0, # Default to yes, or if already adding items
+        key="order_prompt_radio"
+    )
 
-    # --- Take Order ---
-    st.header("Place Your Order")
+    if order_choice == "Yes, I'd like to order":
+        if st.button("Proceed to Order Form", type="primary"):
+            st.session_state.app_stage = 'ordering'
+            st.rerun()
+    else:
+        st.info("🙏 Thank you for stopping by. See you again!")
+        if st.button("Go Back to Customer Details"):
+            st.session_state.app_stage = 'customer_details'
+            st.rerun()
 
-    # Initialize session state for order if not present
-    if 'current_order_items' not in st.session_state:
-        st.session_state.current_order_items = []
-    if 'current_order_prices' not in st.session_state:
-        st.session_state.current_order_prices = []
+
+# --- Ordering Stage ---
+elif st.session_state.app_stage == 'ordering':
+    st.header(f"Place Your Order for {st.session_state.customer_name}")
 
     # Collect all available items for the dropdown
     all_menu_items = []
-    item_to_price_map = {} # To quickly get the price of a selected item
+    item_to_price_map = {}
     for category, items in menu.items():
         for item_name, price in items.items():
             all_menu_items.append(item_name)
             item_to_price_map[item_name] = price
     
-    # Sort items alphabetically for better user experience
     all_menu_items.sort()
-
-    # Add a default 'Select an item' option
     all_menu_items.insert(0, "--- Select an item ---")
 
-    # Dropdown menu for selecting items
     selected_item = st.selectbox(
         "Choose a dish to add to your order:",
         options=all_menu_items,
-        key="item_selector" # Unique key for the selectbox
+        key="item_selector"
     )
 
     if st.button("Add Selected Item to Order"):
-        if selected_item != "--- Select an item ---": # Check if a valid item was selected
-            price = item_to_price_map.get(selected_item) # Get price from our map
+        if selected_item != "--- Select an item ---":
+            price = item_to_price_map.get(selected_item)
             if price is not None:
                 st.session_state.current_order_items.append(selected_item)
                 st.session_state.current_order_prices.append(price)
                 st.success(f"✅ '{selected_item}' added to your order.")
-                # Force a rerun to reset the selectbox to its default state
-                st.rerun()
+                st.rerun() # Rerun to update order display and reset selectbox
             else:
                 st.error(f"❌ Price for '{selected_item}' not found (internal error).")
         else:
@@ -180,72 +195,87 @@ if st.session_state.show_order_section and st.session_state.customer_name and st
     st.markdown("---")
     st.subheader("📝 Your Current Order")
     if st.session_state.current_order_items:
-        # Display current order in a DataFrame for better readability
         order_df_data = [{"Item": item, "Price (₹)": price} for item, price in zip(st.session_state.current_order_items, st.session_state.current_order_prices)]
         st.dataframe(order_df_data, use_container_width=True, hide_index=True)
 
-        # Button to clear the current order
-        if st.button("Clear Order", help="Removes all items from your current order."):
-            st.session_state.current_order_items = []
-            st.session_state.current_order_prices = []
-            st.info("Your order has been cleared.")
-            st.rerun() # Rerun to refresh the display immediately
-            
-        st.markdown("---")
-        # --- Generate Bill ---
-        if st.button("Generate Bill and Finalize Order", type="primary"):
-            if st.session_state.current_order_items:
-                subtotal = sum(st.session_state.current_order_prices)
-                gst = round(subtotal * 0.18, 2)
-                total = round(subtotal + gst, 2)
-
-                st.balloons() # Fun visual effect!
-                st.subheader("🧾 Your Final Bill")
-                st.markdown(f"**Customer Name:** {st.session_state.customer_name}") # Use session state name
-                st.markdown(f"**Phone Number:** {st.session_state.customer_phone}") # Use session state phone
-                st.markdown(f"**Visit Session:** {session}")
-                st.markdown(f"**Date:** {today_date}")
-                st.markdown(f"**Day:** {today_day}")
-                st.markdown(f"**Bill Time:** {bill_time}")
-                
-                st.write("---")
-                st.markdown("### Order Summary:")
-                for item, price in zip(st.session_state.current_order_items, st.session_state.current_order_prices):
-                    st.markdown(f"- {item}: ₹{price:,.2f}") # Format price
-                
-                st.write("---")
-                st.markdown(f"**Subtotal:** ₹{subtotal:,.2f}")
-                st.markdown(f"**GST (18%):** ₹{gst:,.2f}")
-                st.markdown(f"## **Total Payable:** ₹{total:,.2f}/-")
-                st.write("---")
-
-                # Save customer record
-                customer_data[st.session_state.customer_name] = { # Use session state name
-                    "phone_number": st.session_state.customer_phone, # Use session state phone
-                    "Visiting_time": session,
-                    "date": today_date,
-                    "day": today_day,
-                    "bill_time": bill_time,
-                    "user_items": st.session_state.current_order_items,
-                    "user_price": st.session_state.current_order_prices,
-                    "total": total
-                }
-
-                try:
-                    with open(customer_data_file, "w") as f:
-                        json.dump(customer_data, f, indent=4)
-                    st.success("✅ Order saved successfully! Thank you for visiting!")
-                except IOError as e:
-                    st.error(f"Failed to save customer data: {e}. Please check file permissions.")
-
-                # Clear order from session state after generating bill
+        col_order_btn1, col_order_btn2 = st.columns([1,1])
+        with col_order_btn1:
+            if st.button("Clear Order", help="Removes all items from your current order."):
                 st.session_state.current_order_items = []
                 st.session_state.current_order_prices = []
-                st.info("Your order has been cleared for the next customer.")
-            else:
-                st.warning("Your order is empty. Please add items before generating the bill.")
+                st.info("Your order has been cleared.")
+                st.rerun()
+        with col_order_btn2:
+            if st.button("Generate Bill and Finalize Order", type="primary"):
+                if st.session_state.current_order_items:
+                    st.session_state.app_stage = 'bill_generated'
+                    st.rerun() # Proceed to bill generation stage
+                else:
+                    st.warning("Your order is empty. Please add items before generating the bill.")
     else:
         st.info("Your order is currently empty. Use the dropdown and 'Add Item' button above.")
+    
+    st.markdown("---")
+    if st.button("Back to Menu View"):
+        st.session_state.app_stage = 'menu_view'
+        st.rerun()
+
+
+# --- Bill Generated Stage ---
+elif st.session_state.app_stage == 'bill_generated':
+    subtotal = sum(st.session_state.current_order_prices)
+    gst = round(subtotal * 0.18, 2)
+    total = round(subtotal + gst, 2)
+
+    st.balloons()
+    st.subheader("🧾 Your Final Bill")
+    st.markdown(f"**Customer Name:** {st.session_state.customer_name}")
+    st.markdown(f"**Phone Number:** {st.session_state.customer_phone}")
+    st.markdown(f"**Visit Session:** {session}")
+    st.markdown(f"**Date:** {today_date}")
+    st.markdown(f"**Day:** {today_day}")
+    st.markdown(f"**Bill Time:** {bill_time}")
+    
+    st.write("---")
+    st.markdown("### Order Summary:")
+    for item, price in zip(st.session_state.current_order_items, st.session_state.current_order_prices):
+        st.markdown(f"- {item}: ₹{price:,.2f}")
+    
+    st.write("---")
+    st.markdown(f"**Subtotal:** ₹{subtotal:,.2f}")
+    st.markdown(f"**GST (18%):** ₹{gst:,.2f}")
+    st.markdown(f"## **Total Payable:** ₹{total:,.2f}/-")
+    st.write("---")
+
+    # Save customer record
+    customer_data[st.session_state.customer_name] = {
+        "phone_number": st.session_state.customer_phone,
+        "Visiting_time": session,
+        "date": today_date,
+        "day": today_day,
+        "bill_time": bill_time,
+        "user_items": st.session_state.current_order_items,
+        "user_price": st.session_state.current_order_prices,
+        "total": total
+    }
+
+    try:
+        with open(customer_data_file, "w") as f:
+            json.dump(customer_data, f, indent=4)
+        st.success("✅ Order saved successfully! Thank you for visiting!")
+    except IOError as e:
+        st.error(f"Failed to save customer data: {e}. Please check file permissions.")
+
+    # Clear order and customer details from session state after bill is generated and saved
+    st.session_state.current_order_items = []
+    st.session_state.current_order_prices = []
+    st.session_state.customer_name = ""
+    st.session_state.customer_phone = ""
+    
+    st.info("You can now start a new order for the next customer.")
+    if st.button("Start New Customer Order", type="primary"):
+        st.session_state.app_stage = 'customer_details'
+        st.rerun()
 
 st.markdown("---")
 st.write("Developed with ❤️ for Dill-Khus Cafe")
