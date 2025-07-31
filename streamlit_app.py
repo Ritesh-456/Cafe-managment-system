@@ -111,7 +111,6 @@ if st.session_state.app_stage == 'customer_details':
 
     with col_btn2:
         if st.session_state.customer_name and st.session_state.customer_phone:
-            # Changed "View Menu" to "Process"
             if st.button("Process", type="primary", help="Continue with the entered customer details."):
                 st.session_state.app_stage = 'menu_view'
                 st.rerun()
@@ -163,33 +162,40 @@ elif st.session_state.app_stage == 'menu_view':
 elif st.session_state.app_stage == 'ordering':
     st.header(f"Place Your Order for {st.session_state.customer_name}")
 
-    # Collect all available items for the dropdown
-    all_menu_items = []
-    item_to_price_map = {}
+    # Collect all available items for the dropdown, including prices
+    all_menu_items_formatted = []
+    item_to_price_map = {} # This map remains the same: "Item Name" -> Price
     for category, items in menu.items():
         for item_name, price in items.items():
-            all_menu_items.append(item_name)
             item_to_price_map[item_name] = price
+            all_menu_items_formatted.append(f"{item_name} (₹{price})") # Format for display
     
-    all_menu_items.sort()
-    all_menu_items.insert(0, "--- Select an item ---")
+    # Sort formatted items alphabetically
+    all_menu_items_formatted.sort()
 
-    selected_item = st.selectbox(
+    # Add a default 'Select an item' option
+    all_menu_items_formatted.insert(0, "--- Select an item ---")
+
+    selected_formatted_item = st.selectbox(
         "Choose a dish to add to your order:",
-        options=all_menu_items,
+        options=all_menu_items_formatted,
         key="item_selector"
     )
 
     if st.button("Add Selected Item to Order"):
-        if selected_item != "--- Select an item ---":
-            price = item_to_price_map.get(selected_item)
+        if selected_formatted_item != "--- Select an item ---":
+            # Extract the actual item name from the formatted string
+            # Example: "Coffee (₹120)" -> "Coffee"
+            actual_item_name = selected_formatted_item.split(' (₹')[0] 
+            
+            price = item_to_price_map.get(actual_item_name) # Get price using the actual item name
             if price is not None:
-                st.session_state.current_order_items.append(selected_item)
+                st.session_state.current_order_items.append(actual_item_name)
                 st.session_state.current_order_prices.append(price)
-                st.success(f"✅ '{selected_item}' added to your order.")
-                st.rerun() # Rerun to update order display and reset selectbox
+                st.success(f"✅ '{actual_item_name}' added to your order.")
+                st.rerun()
             else:
-                st.error(f"❌ Price for '{selected_item}' not found (internal error).")
+                st.error(f"❌ Price for '{actual_item_name}' not found (internal error).")
         else:
             st.warning("Please select a dish from the dropdown before adding.")
 
@@ -210,7 +216,7 @@ elif st.session_state.app_stage == 'ordering':
             if st.button("Generate Bill and Finalize Order", type="primary"):
                 if st.session_state.current_order_items:
                     st.session_state.app_stage = 'bill_generated'
-                    st.rerun() # Proceed to bill generation stage
+                    st.rerun()
                 else:
                     st.warning("Your order is empty. Please add items before generating the bill.")
     else:
