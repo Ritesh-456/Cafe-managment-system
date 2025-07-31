@@ -1,64 +1,344 @@
 {
-    "Ritesh brahmachari_1234567981": {
-        "Visiting_time": "Evening",
-        "date": "31/07/2025",
-        "day": "Thursday",
-        "bill_time": "19:48:41",
-        "user_items": [
-            "Evening Platter (Starter + Main)",
-            "Evening Platter (Starter + Main)",
-            "Chocolate Lava Cake",
-            "Chocolate Lava Cake",
-            "Cold Coffee",
-            "Cold Coffee"
-        ],
-        "user_price": [
-            280,
-            280,
-            160,
-            160,
-            110,
-            110
-        ],
-        "total": 1298.0
-    },
-    "Kalyan mohapatra_9348274599": {
-        "Visiting_time": "Evening",
-        "date": "31/07/2025",
-        "day": "Thursday",
-        "bill_time": "19:57:24",
-        "user_items": [
-            "Grilled Sandwich",
-            "Grilled Sandwich",
-            "Lemon Tea",
-            "Lemon Tea"
-        ],
-        "user_price": [
-            120,
-            120,
-            55,
-            55
-        ],
-        "total": 413.0
-    },
-    "Kali das": {
-        "phone_number": "213467897",
-        "Visiting_time": "Evening",
-        "date": "31/07/2025",
-        "day": "Thursday",
-        "bill_time": "20:05:13",
-        "user_items": [
-            "Kulfi",
-            "Kulfi",
-            "Kulfi",
-            "Kulfi"
-        ],
-        "user_price": [
-            70,
-            70,
-            70,
-            70
-        ],
-        "total": 330.4
-    }
+  "Kali das": {
+    "phone_number": "213467897",
+    "Visiting_time": "Evening",
+    "date": "31/07/2025",
+    "day": "Thursday",
+    "bill_time": "20:05:13",
+    "user_items": [
+      "Kulfi",
+      "Kulfi",
+      "Kulfi",
+      "Kulfi"
+    ],
+    "user_price": [
+      70,
+      70,
+      70,
+      70
+    ],
+    "total": 280.0
+  },
+  "Ramesh Patel": {
+    "phone_number": "9876543210",
+    "Visiting_time": "Afternoon",
+    "date": "01/08/2025",
+    "day": "Friday",
+    "bill_time": "14:22:45",
+    "user_items": [
+      "Paneer Tikka",
+      "Dal Makhani",
+      "Naan"
+    ],
+    "user_price": [
+      250,
+      180,
+      50
+    ],
+    "total": 480.0
+  },
+  "Priya Sharma": {
+    "phone_number": "8765432109",
+    "Visiting_time": "Evening",
+    "date": "01/08/2025",
+    "day": "Friday",
+    "bill_time": "19:30:10",
+    "user_items": [
+      "Masala Dosa",
+      "Filter Coffee"
+    ],
+    "user_price": [
+      120,
+      60
+    ],
+    "total": 180.0
+  },
+  "Amit Singh": {
+    "phone_number": "7654321098",
+    "Visiting_time": "Morning",
+    "date": "02/08/2025",
+    "day": "Saturday",
+    "bill_time": "10:15:22",
+    "user_items": [
+      "Samosa",
+      "Tea"
+    ],
+    "user_price": [
+      30,
+      20
+    ],
+    "total": 50.0
+  },
+  "Anjali Gupta": {
+    "phone_number": "6543210987",
+    "Visiting_time": "Afternoon",
+    "date": "02/08/2025",
+    "day": "Saturday",
+    "bill_time": "13:55:01",
+    "user_items": [
+      "Chicken Biryani",
+      "Raita",
+      "Gulab Jamun"
+    ],
+    "user_price": [
+      300,
+      70,
+      80
+    ],
+    "total": 450.0
+  },
+  "Sandeep Kumar": {
+    "phone_number": "5432109876",
+    "Visiting_time": "Evening",
+    "date": "03/08/2025",
+    "day": "Sunday",
+    "bill_time": "21:00:55",
+    "user_items": [
+      "Pizza",
+      "Coke"
+    ],
+    "user_price": [
+      450,
+      60
+    ],
+    "total": 510.0
+  },
+  "Neha Verma": {
+    "phone_number": "4321098765",
+    "Visiting_time": "Morning",
+    "date": "03/08/2025",
+    "day": "Sunday",
+    "bill_time": "09:45:30",
+    "user_items": [
+      "Poha",
+      "Jalebi"
+    ],
+    "user_price": [
+      40,
+      50
+    ],
+    "total": 90.0
+  },
+  "Arun Das": {
+    "phone_number": "3210987654",
+    "Visiting_time": "Afternoon",
+    "date": "04/08/2025",
+    "day": "Monday",
+    "bill_time": "12:10:05",
+    "user_items": [
+      "Thali"
+    ],
+    "user_price": [
+      220
+    ],
+    "total": 220.0
+  },
+  "Kavita Reddy": {
+    "phone_number": "2109876543",
+    "Visiting_time": "Evening",
+    "date": "04/08/2025",
+    "day": "Monday",
+    "bill_time": "20:30:15",
+    "user_items": [
+      "Kulfi",
+      "Kulfi"
+    ],
+    "user_price": [
+      70,
+      70
+    ],
+    "total": 140.0
+  },
+  "Mohan Iyer": {
+    "phone_number": "1098765432",
+    "Visiting_time": "Morning",
+    "date": "05/08/2025",
+    "day": "Tuesday",
+    "bill_time": "08:00:00",
+    "user_items": [
+      "Idli",
+      "Vada"
+    ],
+    "user_price": [
+      50,
+      40
+    ],
+    "total": 90.0
+  },
+  "Deepika Rao": {
+    "phone_number": "9988776655",
+    "Visiting_time": "Afternoon",
+    "date": "05/08/2025",
+    "day": "Tuesday",
+    "bill_time": "15:45:20",
+    "user_items": [
+      "Pav Bhaji",
+      "Lassi"
+    ],
+    "user_price": [
+      150,
+      80
+    ],
+    "total": 230.0
+  },
+  "Rajesh Khanna": {
+    "phone_number": "8877665544",
+    "Visiting_time": "Evening",
+    "date": "06/08/2025",
+    "day": "Wednesday",
+    "bill_time": "18:15:33",
+    "user_items": [
+      "Dahi Vada"
+    ],
+    "user_price": [
+      90
+    ],
+    "total": 90.0
+  },
+  "Sonia Bajaj": {
+    "phone_number": "7766554433",
+    "Visiting_time": "Morning",
+    "date": "06/08/2025",
+    "day": "Wednesday",
+    "bill_time": "11:00:11",
+    "user_items": [
+      "Aloo Paratha",
+      "Curd"
+    ],
+    "user_price": [
+      75,
+      25
+    ],
+    "total": 100.0
+  },
+  "Vikram Soni": {
+    "phone_number": "6655443322",
+    "Visiting_time": "Afternoon",
+    "date": "07/08/2025",
+    "day": "Thursday",
+    "bill_time": "16:20:00",
+    "user_items": [
+      "Vada Pav",
+      "Chai"
+    ],
+    "user_price": [
+      40,
+      20
+    ],
+    "total": 60.0
+  },
+  "Pooja Das": {
+    "phone_number": "5544332211",
+    "Visiting_time": "Evening",
+    "date": "07/08/2025",
+    "day": "Thursday",
+    "bill_time": "20:40:40",
+    "user_items": [
+      "Kulfi",
+      "Kulfi",
+      "Falooda"
+    ],
+    "user_price": [
+      70,
+      70,
+      100
+    ],
+    "total": 240.0
+  },
+  "Manish Kumar": {
+    "phone_number": "4433221100",
+    "Visiting_time": "Morning",
+    "date": "08/08/2025",
+    "day": "Friday",
+    "bill_time": "09:10:50",
+    "user_items": [
+      "Uttapam",
+      "Sambar"
+    ],
+    "user_price": [
+      110,
+      30
+    ],
+    "total": 140.0
+  },
+  "Swati Nair": {
+    "phone_number": "3322110099",
+    "Visiting_time": "Afternoon",
+    "date": "08/08/2025",
+    "day": "Friday",
+    "bill_time": "13:00:00",
+    "user_items": [
+      "Chicken Curry",
+      "Rice"
+    ],
+    "user_price": [
+      280,
+      60
+    ],
+    "total": 340.0
+  },
+  "Rahul Bose": {
+    "phone_number": "2211009988",
+    "Visiting_time": "Evening",
+    "date": "09/08/2025",
+    "day": "Saturday",
+    "bill_time": "19:00:00",
+    "user_items": [
+      "Chole Bhature"
+    ],
+    "user_price": [
+      150
+    ],
+    "total": 150.0
+  },
+  "Shilpa Aggarwal": {
+    "phone_number": "1100998877",
+    "Visiting_time": "Morning",
+    "date": "09/08/2025",
+    "day": "Saturday",
+    "bill_time": "10:30:15",
+    "user_items": [
+      "Muffin",
+      "Cappuccino"
+    ],
+    "user_price": [
+      60,
+      120
+    ],
+    "total": 180.0
+  },
+  "Gaurav Joshi": {
+    "phone_number": "0099887766",
+    "Visiting_time": "Afternoon",
+    "date": "10/08/2025",
+    "day": "Sunday",
+    "bill_time": "14:50:35",
+    "user_items": [
+      "Burger",
+      "Fries"
+    ],
+    "user_price": [
+      180,
+      90
+    ],
+    "total": 270.0
+  },
+  "Meera Menon": {
+    "phone_number": "9988776655",
+    "Visiting_time": "Evening",
+    "date": "10/08/2025",
+    "day": "Sunday",
+    "bill_time": "21:10:20",
+    "user_items": [
+      "Kulfi",
+      "Kulfi",
+      "Kulfi"
+    ],
+    "user_price": [
+      70,
+      70,
+      70
+    ],
+    "total": 210.0
+  }
 }
