@@ -2,11 +2,12 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
+# Removed: import streamlit.components.v1 as components # Not needed without live clock
 
 # --- Configuration & File Paths ---
 CAFE_NAME = "Bhakti's Cafe.com"
 CUSTOMER_DATA_FILE = "customer_data.json"
-CONFIG_FILE = "config.json" # Centralized config file for cafe hours
+CONFIG_FILE = "config.json" # New: Centralized config file
 
 # --- Helper Functions ---
 
@@ -299,8 +300,7 @@ else:
                     st.session_state.customer_phone, 
                     st.session_state.current_order, # Passing dictionary now
                     all_menu_items, 
-                    session, 
-                    cafe_status_datetime
+                    session # Removed cafe_status_datetime as it's not needed by the function
                 )
     else:
         st.info("Your order is empty. Please select items from the menu.")
@@ -345,8 +345,6 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
             st.rerun()
 
 # --- Global "Start New Customer Order" Button (always visible if an order is active) ---
-# This button provides an escape hatch to start fresh even if no bill was generated.
-# It only shows if there's an active customer or order, or a bill displayed.
 if not st.session_state.show_bill and (st.session_state.customer_name or st.session_state.current_order):
     st.markdown("---") 
     if st.button("Start New Customer Order", key="start_new_customer_global"):
