@@ -11,12 +11,12 @@ evening_end = datetime.strptime("22:00:00", "%H:%M:%S").time()
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(
-    page_title="Dill-Khus Cafe",
+    page_title="Bhakti's Cafe",
     layout="wide",
     initial_sidebar_state="auto"
 )
 
-st.title("☕ Welcome to Dill-Khus Cafe")
+st.title("☕ Welcome to Bhakti's Cafe")
 
 # --- Determine Current Time and Session ---
 now = datetime.now()
@@ -290,4 +290,4 @@ elif st.session_state.app_stage == 'bill_generated':
         st.rerun()
 
 st.markdown("---")
-st.write("Developed with ❤️ for Dill-Khus Cafe")
+st.write("Developed with ❤️ for Bhakti's Cafe")
