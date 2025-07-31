@@ -75,6 +75,7 @@ def load_menu(file_name):
 
 def generate_and_save_bill(customer_name, customer_phone, current_order, all_menu_items, session, cafe_status_datetime):
     """Calculates bill, saves customer data, and updates session state for display."""
+    # current_order is now a dict {item_name: quantity}
     subtotal = sum(all_menu_items.get(item, 0) * qty for item, qty in current_order.items())
     gst = round(subtotal * 0.18, 2)
     total = round(subtotal + gst, 2)
@@ -86,6 +87,7 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
 
     # Prepare data for session state bill display
     items_ordered_for_display = []
+    # No need for item_counts here since current_order already has quantities
     for item, qty in current_order.items():
         price_per_item = all_menu_items.get(item, 0)
         item_total = price_per_item * qty
@@ -94,6 +96,7 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
         )
     
     # Prepare data for original customer_data.json structure (repeated items for quantity)
+    # This recreates the flat list for compatibility with existing customer_data.json structure
     ordered_items_list_for_save = []
     ordered_prices_list_for_save = []
     for item, qty in current_order.items():
@@ -208,8 +211,8 @@ with st.form("customer_form"):
         st.session_state.customer_name = name
         st.session_state.customer_phone = phone
         if name in customer_data:
-            prev_day = customer_data[name].get("day", "N/A")
-            st.info(f'👋 Hello {name}, once again! Hope you enjoyed that {prev_day.lower()}!')
+            # MODIFIED GREETING HERE
+            st.info(f'👋 Hello, {name} thank you for revisiting!')
         else:
             st.success(f"👋 Hello {name}, nice to meet you!")
         st.rerun() # Rerun to refresh the display based on new identity status
@@ -270,22 +273,30 @@ else:
 
     if st.session_state.current_order:
         subtotal = 0
+        order_df_data = [] # For st.dataframe
         for item, qty in st.session_state.current_order.items():
             price_per_item = all_menu_items.get(item, 0)
             item_total = price_per_item * qty
-            st.write(f"- {item} x {qty} : ₹{item_total:.2f}")
+            order_df_data.append({"Item": item, "Quantity": qty, "Price (₹)": f"₹{price_per_item:.2f}", "Total (₹)": f"₹{item_total:.2f}"})
             subtotal += item_total
         
-        st.write(f"**Subtotal: ₹{subtotal:.2f}**")
+        st.dataframe(order_df_data, use_container_width=True, hide_index=True)
 
-        if st.button("Generate Bill"):
+        if st.button("Clear Order", help="Removes all items from your current order."):
+            st.session_state.current_order = {}
+            st.info("Your order has been cleared.")
+            st.rerun()
+            
+        st.markdown("---")
+        
+        if st.button("Generate Bill", type="primary"):
             if not st.session_state.current_order: 
                 st.warning("Your cart is empty. Please add items to generate a bill.")
             else:
                 generate_and_save_bill(
                     st.session_state.customer_name, 
                     st.session_state.customer_phone, 
-                    st.session_state.current_order, 
+                    st.session_state.current_order, # Passing dictionary now
                     all_menu_items, 
                     session, 
                     cafe_status_datetime
@@ -298,7 +309,6 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
     bill = st.session_state.last_bill_details
     st.markdown("### 🧾 ========== BILL ==========")
     st.write(f"**Customer Name:** {bill['customer_name']}")
-    # Corrected 'phone_phone_number' to 'phone_number'
     st.write(f"**Phone Number:** {bill['phone_number']}") 
     st.write(f"**Visit Session:** {bill['visit_session']}")
     st.write(f"**Date:** {bill['date']}")
@@ -312,7 +322,7 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
     st.markdown("---")
     st.write(f"**Subtotal:** ₹{bill['subtotal']:.2f}")
     st.write(f"**GST (18%):** ₹{bill['gst']:.2f}")
-    st.markdown(f"### **Total Payable: ₹{bill['total']:.2f}/-**")
+    st.markdown(f"### **Total Payable:** ₹{bill['total']:.2f}/-")
     st.markdown("=============================")
 
     # New buttons after bill generation for workflow clarity
@@ -334,8 +344,6 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
             st.rerun()
 
 # --- Global "Start New Customer Order" Button (always visible if an order is active) ---
-# This button provides an escape hatch to start fresh even if no bill was generated.
-# It only shows if there's an active customer or order, or a bill displayed.
 if not st.session_state.show_bill and (st.session_state.customer_name or st.session_state.current_order):
     st.markdown("---") 
     if st.button("Start New Customer Order", key="start_new_customer_global"):
