@@ -44,29 +44,46 @@ def load_cafe_config():
                 "evening_end": datetime.strptime(config["evening_end"], "%H:%M:%S").time()
             }
         except KeyError:
-            st.error(f"Configuration file '{CONFIG_FILE}' is missing required time keys (e.g., 'day_start').")
+            st.error(f"Configuration file '{CONFIG_FILE}' is missing required time keys (e.g., 'day_start', 'day_end', 'evening_start', 'evening_end').")
             return None
         except ValueError:
-            st.error(f"Configuration file '{CONFIG_FILE}' contains invalid time formats. Use HH:MM:SS.")
+            st.error(f"Configuration file '{CONFIG_FILE}' contains invalid time formats. Use HH:MM:SS (e.g., '10:00:00').")
             return None
     else:
         st.error(f"Configuration file '{CONFIG_FILE}' not found or is empty/corrupted.")
         return None
 
 def get_cafe_status(cafe_hours):
-    """Determines current cafe session and status based on real-time and loaded cafe hours."""
+    """
+    Determines current cafe session and status, providing a specific closed message.
+    Returns: (session_name, menu_file, current_datetime_obj, is_open, closed_message_if_any)
+    """
     if not cafe_hours:
-        return "Error", None, None # Cannot determine status if config failed to load
+        return "Error", None, None, False, "Cafe configuration could not be loaded."
 
     now = datetime.now()
     current_time = now.time()
     
     if cafe_hours["day_start"] <= current_time <= cafe_hours["day_end"]:
-        return "Day", "day.json", now
+        return "Day", "day.json", now, True, None
     elif cafe_hours["evening_start"] <= current_time <= cafe_hours["evening_end"]:
-        return "Evening", "evening.json", now
+        return "Evening", "evening.json", now, True, None
     else:
-        return "Closed", None, now
+        # Cafe is closed. Determine the specific message.
+        closed_message = ""
+        if current_time > cafe_hours["day_end"] and current_time < cafe_hours["evening_start"]:
+            # Between day and evening sessions
+            closed_message = f"Cafe is currently closed between sessions. We will reopen at {cafe_hours['evening_start'].strftime('%I:%M %p')} for our Evening Menu!"
+        elif current_time > cafe_hours["evening_end"]:
+            # After evening closing
+            closed_message = f"Cafe is now closed for the day. We look forward to seeing you tomorrow morning at {cafe_hours['day_start'].strftime('%I:%M %p')}!"
+        elif current_time < cafe_hours["day_start"]:
+            # Before morning opening
+            closed_message = f"Cafe is not yet open. We open at {cafe_hours['day_start'].strftime('%I:%M %p')} today!"
+        else:
+            closed_message = "Cafe is closed. Please check our working hours: Day ({cafe_hours['day_start'].strftime('%I:%M %p')} - {cafe_hours['day_end'].strftime('%I:%M %p')}), Evening ({cafe_hours['evening_start'].strftime('%I:%M %p')} - {cafe_hours['evening_end'].strftime('%I:%M %p')})." # Fallback
+
+        return "Closed", None, now, False, closed_message
 
 def load_menu(file_name):
     """Loads menu from JSON file."""
@@ -74,7 +91,6 @@ def load_menu(file_name):
 
 def generate_and_save_bill(customer_name, customer_phone, current_order, all_menu_items, session):
     """Calculates bill, applies discounts, saves customer data, and updates session state for display."""
-    # current_order is now a dict {item_name: quantity}
     initial_subtotal = sum(all_menu_items.get(item, 0) * qty for item, qty in current_order.items())
     
     total_items_count = sum(current_order.values())
@@ -152,6 +168,8 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
 
     st.session_state.show_bill = True
     st.session_state.current_order = {} # Clear current order inputs after bill
+    # Reset wants_to_order after successful bill generation to guide flow
+    st.session_state.wants_to_order = False 
     st.rerun() # Trigger a rerun to display the bill and reset order inputs
 
 
@@ -180,25 +198,15 @@ st.markdown("---")
 # Load cafe operating hours from config.json
 cafe_hours = load_cafe_config()
 if not cafe_hours:
+    # Critical error, stop app as hours are essential
     st.error("Cannot start application: Cafe operating hours could not be loaded from config.json. Please ensure it's set up correctly.")
-    st.stop() # Stop the app if config is critical
+    st.stop()
 
 # Determine cafe status and load menu based on current real-time and loaded cafe hours
-session, menu_file_name, cafe_status_datetime = get_cafe_status(cafe_hours)
+session, menu_file_name, cafe_status_datetime, closed_message = get_cafe_status(cafe_hours)
+is_cafe_open = (session != "Closed" and session != "Error") # Simplified check for open/closed
 
-if session == "Closed":
-    st.error("❌ Sorry! Cafe is closed right now.")
-    st.info(f"🕒 Working Hours: {cafe_hours['day_start'].strftime('%I%p')}–{cafe_hours['day_end'].strftime('%I%p')} and {cafe_hours['evening_start'].strftime('%I%p')}–{cafe_hours['evening_end'].strftime('%I%p')}")
-    st.stop() # Stop the app if cafe is closed
-elif session == "Error":
-    st.stop() # Stop if there was an error loading config (already handled by load_cafe_config)
-else:
-    st.success(f"🎉 Cafe is open! Serving our **{session}** menu.")
-    menu = load_menu(menu_file_name)
-    if not menu:
-        st.stop() # Stop if menu couldn't be loaded
-
-# Initialize session state for customer details, order, and bill display
+# --- Initialize session state for customer details, order, and bill display ---
 if 'customer_name' not in st.session_state:
     st.session_state.customer_name = ""
 if 'customer_phone' not in st.session_state:
@@ -209,119 +217,36 @@ if 'show_bill' not in st.session_state:
     st.session_state.show_bill = False
 if 'last_bill_details' not in st.session_state:
     st.session_state.last_bill_details = None
+if 'wants_to_order' not in st.session_state: # New flag for post-identity decision
+    st.session_state.wants_to_order = False
 
-st.header("Place Your Order")
+# --- MAIN APP LOGIC FLOW ---
 
-# Customer Identity Form (Conditional Rendering)
-# This block only displays the form if customer_name or customer_phone are NOT set in session_state
-if not st.session_state.customer_name or not st.session_state.customer_phone:
-    with st.form("customer_form"):
-        name_input = st.text_input("Enter your Name:", value=st.session_state.customer_name, key="customer_name_input_form").strip().capitalize()
-        phone_input = st.text_input("Enter your Phone Number:", value=st.session_state.customer_phone, key="customer_phone_input_form").strip()
-        
-        submitted_identity = st.form_submit_button("Confirm Identity")
-
-        if submitted_identity:
-            if name_input and phone_input: # Ensure both fields are filled
-                st.session_state.customer_name = name_input
-                st.session_state.customer_phone = phone_input
-
-                customer_data = load_json_data(CUSTOMER_DATA_FILE) or {} # Load data here to check for revisit
-                
-                # Greet revisiting customers
-                if name_input in customer_data:
-                    st.info(f'👋 Hello, {name_input} thank you for revisiting!')
-                else:
-                    st.success(f"👋 Hello {name_input}, nice to meet you!")
-                
-                st.rerun() # Rerun to proceed to the order section (this will hide the form)
-            else:
-                st.warning("Please enter both your name and phone number.")
-else:
-    # Order Section (shown only if identity is confirmed)
-    st.subheader(f"Hello, {st.session_state.customer_name}! Here's our {session} Menu:")
-
-    # Display Menu and Order Selection
+if not is_cafe_open:
+    # Scenario: Cafe is CLOSED
+    st.error("❌ Sorry! Cafe is closed. 😔")
+    st.info(closed_message) # Display the specific closed message
     st.markdown("---")
-    st.subheader("Menu Items")
-
-    # Collect all items and their prices for easy lookup
-    all_menu_items = {}
-    for category, items in menu.items():
-        all_menu_items.update(items)
-
-    with st.form(key="order_selection_form"):
-        st.write("Select the items you'd like to order and specify quantities.")
-        
-        order_changed_in_form = False 
-        
-        for category, items in menu.items():
-            st.markdown(f"**__{category}__**")
-            cols = st.columns(3) 
-            col_idx = 0
-            for item_name, price in items.items():
-                with cols[col_idx]:
-                    # Display name and price prominently, then the number input
-                    st.markdown(f"**{item_name}** (₹{price})") 
-                    current_qty = st.session_state.current_order.get(item_name, 0)
-                    new_qty = st.number_input(f"qty_{item_name}", # Unique key for number_input
-                                              min_value=0, 
-                                              value=current_qty, 
-                                              step=1, 
-                                              key=f"qty_input_{item_name}", # Ensure unique key for widget
-                                              label_visibility="collapsed") # Hide default label
-                    if new_qty > 0:
-                        if st.session_state.current_order.get(item_name) != new_qty:
-                            st.session_state.current_order[item_name] = new_qty
-                            order_changed_in_form = True
-                    elif item_name in st.session_state.current_order and new_qty == 0:
-                        del st.session_state.current_order[item_name]
-                        order_changed_in_form = True
-                col_idx = (col_idx + 1) % 3
-
-        submit_order_button = st.form_submit_button("Update Order")
-        if submit_order_button and order_changed_in_form:
-            st.session_state.show_bill = False
-            st.session_state.last_bill_details = None
-            st.toast("Order updated!")
-            st.rerun()
-
-    st.markdown("---")
-    st.subheader("Your Current Order")
-
-    if st.session_state.current_order:
-        subtotal = 0
-        order_df_data = [] # For st.dataframe
-        for item, qty in st.session_state.current_order.items():
-            price_per_item = all_menu_items.get(item, 0)
-            item_total = price_per_item * qty
-            order_df_data.append({"Item": item, "Quantity": qty, "Price (₹)": f"₹{price_per_item:.2f}", "Total (₹)": f"₹{item_total:.2f}"})
-            subtotal += item_total
-        
-        st.dataframe(order_df_data, use_container_width=True, hide_index=True)
-
-        if st.button("Clear Order", help="Removes all items from your current order."):
-            st.session_state.current_order = {}
-            st.info("Your order has been cleared.")
-            st.rerun()
-            
-        st.markdown("---")
-        
-        if st.button("Generate Bill", type="primary"):
-            if not st.session_state.current_order: 
-                st.warning("Your cart is empty. Please add items to generate a bill.")
-            else:
-                generate_and_save_bill(
-                    st.session_state.customer_name, 
-                    st.session_state.customer_phone, 
-                    st.session_state.current_order, # Passing dictionary now
-                    all_menu_items, 
-                    session 
-                )
+    st.subheader("Browse Our Menu:")
+    # Load the day menu by default for browsing if closed, or the evening menu if it's that time but closed.
+    # For simplicity, let's load day.json for browsing when closed
+    browsing_menu = load_menu("day.json") 
+    if browsing_menu:
+        for category, items in browsing_menu.items():
+            with st.expander(f"**{category}**", expanded=False): # Collapsible for long menus
+                st.markdown("---")
+                for item, price in items.items():
+                    st.markdown(f"- **{item}**: ₹{price}")
+                st.markdown("---")
     else:
-        st.info("Your order is empty. Please select items from the menu.")
+        st.warning("Menu for browsing is not available.")
+    # No order form or identity form when closed, just info and browse.
+    st.stop() # Stop further execution when closed and only displaying static info/menu
 
-# --- Display the generated bill ---
+
+# --- If Cafe is OPEN ---
+
+# Display the bill if one was just generated (this block runs on rerun after generate_and_save_bill)
 if st.session_state.show_bill and st.session_state.last_bill_details:
     bill = st.session_state.last_bill_details
     st.markdown("### 🧾 ========== BILL ==========")
@@ -355,6 +280,7 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
             st.session_state.current_order = {}
             st.session_state.show_bill = False
             st.session_state.last_bill_details = None
+            st.session_state.wants_to_order = True # Keep them in ordering flow
             st.rerun()
     with col_new_order2:
         if st.button("Start New Customer Order", key="start_new_customer_after_bill"):
@@ -363,10 +289,152 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
             st.session_state.current_order = {}
             st.session_state.show_bill = False 
             st.session_state.last_bill_details = None
+            st.session_state.wants_to_order = False # Clear this to go back to identity form
+            st.rerun()
+    st.stop() # Stop execution after displaying the bill and options
+
+# --- Identity Confirmation or Order Flow ---
+if not st.session_state.customer_name or not st.session_state.customer_phone:
+    # Scenario: Cafe Open, Identity NOT Confirmed
+    st.header("Your Details")
+    with st.form("customer_form"):
+        name_input = st.text_input("Enter your Name:", value=st.session_state.customer_name, key="customer_name_input_form").strip().capitalize()
+        phone_input = st.text_input("Enter your Phone Number:", value=st.session_state.customer_phone, key="customer_phone_input_form").strip()
+        
+        submitted_identity = st.form_submit_button("Confirm Identity")
+
+        if submitted_identity:
+            if name_input and phone_input: # Ensure both fields are filled
+                st.session_state.customer_name = name_input
+                st.session_state.customer_phone = phone_input
+
+                customer_data = load_json_data(CUSTOMER_DATA_FILE) or {}
+                
+                if name_input in customer_data:
+                    st.info(f'👋 Hello, {name_input} thank you for revisiting!')
+                else:
+                    st.success(f"👋 Hello {name_input}, nice to meet you!")
+                
+                # Now ask if they want to order
+                st.session_state.wants_to_order = None # Set to None to indicate decision pending
+                st.rerun() # Rerun to show the order prompt
+            else:
+                st.warning("Please enter both your name and phone number.")
+
+elif st.session_state.wants_to_order is None:
+    # Scenario: Cafe Open, Identity Confirmed, Decision to Order Pending
+    st.subheader(f"Hello, {st.session_state.customer_name}! Would you like to order food?")
+    col_yes, col_no = st.columns(2)
+    with col_yes:
+        if st.button("Yes, I'd like to order!", key="wants_order_yes"):
+            st.session_state.wants_to_order = True
+            st.rerun()
+    with col_no:
+        if st.button("No, thank you.", key="wants_order_no"):
+            st.session_state.customer_name = "" # Clear identity
+            st.session_state.customer_phone = ""
+            st.session_state.current_order = {} # Clear any partial order
+            st.session_state.wants_to_order = False # Reset state
+            st.info("No problem! Returning to the identity form.")
             st.rerun()
 
-# --- Global "Start New Customer Order" Button (always visible if an order is active) ---
-if not st.session_state.show_bill and (st.session_state.customer_name or st.session_state.current_order):
+elif st.session_state.wants_to_order:
+    # Scenario: Cafe Open, Identity Confirmed, WANTS to order
+    st.subheader(f"Hello, {st.session_state.customer_name}! Here's our {session} Menu:")
+
+    # Display Menu with Expanders
+    st.markdown("---")
+    st.header(f"Our Menu ({session} Session)")
+    for category, items in menu.items():
+        with st.expander(f"**{category}**", expanded=True):
+            st.markdown("---")
+            for item, price in items.items():
+                st.markdown(f"- **{item}**: ₹{price}")
+            st.markdown("---")
+
+    st.markdown("---")
+
+    # --- Take Order (Number Input Quantities) ---
+    st.header("Select Items and Quantities")
+
+    # Collect all items and their prices for easy lookup
+    all_menu_items = {}
+    for category, items in menu.items():
+        all_menu_items.update(items)
+
+    with st.form(key="order_selection_form"):
+        st.write("Adjust the quantities for items you wish to order.")
+        
+        order_changed_in_form = False 
+        
+        for category, items in menu.items():
+            st.markdown(f"**__{category}__**")
+            cols = st.columns(3) 
+            col_idx = 0
+            for item_name, price in items.items():
+                with cols[col_idx]:
+                    st.markdown(f"**{item_name}** (₹{price})") 
+                    current_qty = st.session_state.current_order.get(item_name, 0)
+                    new_qty = st.number_input(f"qty_{item_name}", 
+                                              min_value=0, 
+                                              value=current_qty, 
+                                              step=1, 
+                                              key=f"qty_input_{item_name}", 
+                                              label_visibility="collapsed") 
+                    if new_qty > 0:
+                        if st.session_state.current_order.get(item_name) != new_qty:
+                            st.session_state.current_order[item_name] = new_qty
+                            order_changed_in_form = True
+                    elif item_name in st.session_state.current_order and new_qty == 0:
+                        del st.session_state.current_order[item_name]
+                        order_changed_in_form = True
+                col_idx = (col_idx + 1) % 3
+
+        submit_order_button = st.form_submit_button("Update Order")
+        if submit_order_button and order_changed_in_form:
+            st.session_state.show_bill = False
+            st.session_state.last_bill_details = None
+            st.toast("Order updated!")
+            st.rerun()
+
+    st.markdown("---")
+    st.subheader("📝 Your Current Order")
+
+    if st.session_state.current_order:
+        subtotal = 0
+        order_df_data = [] 
+        for item, qty in st.session_state.current_order.items():
+            price_per_item = all_menu_items.get(item, 0)
+            item_total = price_per_item * qty
+            order_df_data.append({"Item": item, "Quantity": qty, "Price (₹)": f"₹{price_per_item:.2f}", "Total (₹)": f"₹{item_total:.2f}"})
+            subtotal += item_total
+        
+        st.dataframe(order_df_data, use_container_width=True, hide_index=True)
+
+        if st.button("Clear Order", help="Removes all items from your current order."):
+            st.session_state.current_order = {}
+            st.info("Your order has been cleared.")
+            st.rerun()
+            
+        st.markdown("---")
+        
+        if st.button("Generate Bill", type="primary"):
+            if not st.session_state.current_order: 
+                st.warning("Your cart is empty. Please add items to generate a bill.")
+            else:
+                generate_and_save_bill(
+                    st.session_state.customer_name, 
+                    st.session_state.customer_phone, 
+                    st.session_state.current_order, 
+                    all_menu_items, 
+                    session 
+                )
+    else:
+        st.info("Your order is empty. Please select items from the menu.")
+
+# --- Global "Start New Customer Order" Button (for general reset) ---
+# This button is available if they are in the ordering process but haven't generated a bill yet.
+if st.session_state.customer_name and st.session_state.wants_to_order and not st.session_state.show_bill:
     st.markdown("---") 
     if st.button("Start New Customer Order", key="start_new_customer_global"):
         st.session_state.customer_name = ""
@@ -374,6 +442,7 @@ if not st.session_state.show_bill and (st.session_state.customer_name or st.sess
         st.session_state.current_order = {}
         st.session_state.show_bill = False 
         st.session_state.last_bill_details = None
+        st.session_state.wants_to_order = False # Reset this to go back to identity form
         st.rerun()
 
 st.markdown("---")
