@@ -285,4 +285,4 @@ elif st.session_state.app_stage == 'bill_generated':
         st.rerun()
 
 st.markdown("---")
-st.write("Developed with ❤️ for Dill-Khus Cafe")
+st.write("Developed with ❤️ for Bhakti's Cafe Cafe")
