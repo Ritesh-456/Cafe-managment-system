@@ -11,7 +11,7 @@ evening_end = datetime.strptime("22:00:00", "%H:%M:%S").time()
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(
-    page_title="Dill-Khus Cafe",
+    page_title="Bhakti's Cafe",
     layout="wide",
     initial_sidebar_state="auto"
 )
@@ -115,7 +115,8 @@ if st.session_state.app_stage == 'customer_details':
                 st.session_state.app_stage = 'menu_view'
                 st.rerun()
         else:
-            st.info("Please enter your name and phone number to proceed.")
+            # Added a hint to the user here
+            st.info("Please enter your name and phone number to proceed. (Press Enter after typing in fields)")
             
     # Greeting message for existing/new customer after inputs are available
     if st.session_state.customer_name and st.session_state.customer_phone:
@@ -285,4 +286,4 @@ elif st.session_state.app_stage == 'bill_generated':
         st.rerun()
 
 st.markdown("---")
-st.write("Developed with ❤️ for Bhakti's Cafe Cafe")
+st.write("Developed with ❤️ for Bhakti's Cafe")
