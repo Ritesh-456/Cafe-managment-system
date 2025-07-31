@@ -86,7 +86,7 @@ def get_cafe_status(cafe_hours):
             # Before morning opening
             closed_message = f"Cafe is not yet open. We open at {cafe_hours['day_start'].strftime('%I:%M %p')} today!"
         else:
-            closed_message = "Cafe is closed. Please check our working hours: Day ({cafe_hours['day_start'].strftime('%I:%M %p')} - {cafe_hours['day_end'].strftime('%I:%M %p')}), Evening ({cafe_hours['evening_start'].strftime('%I:%M %p')} - {cafe_hours['evening_end'].strftime('%I:%M %p')})." # Fallback
+            closed_message = f"Cafe is closed. Please check our working hours: Day ({cafe_hours['day_start'].strftime('%I:%M %p')} - {cafe_hours['day_end'].strftime('%I:%M %p')}), Evening ({cafe_hours['evening_start'].strftime('%I:%M %p')} - {cafe_hours['evening_end'].strftime('%I:%M %p')})." # Fallback
 
         return "Closed", None, now, False, closed_message
 
@@ -104,12 +104,12 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
     total_items_count = sum(current_order.values())
     discount_percentage = 0.0
 
-    if total_items_count > 11:
-        discount_percentage = 0.09 # 9% for more than 11 items
-    elif total_items_count > 8:
-        discount_percentage = 0.06 # 6% for more than 8 items
-    elif total_items_count > 5:
-        discount_percentage = 0.03 # 3% for more than 5 items
+    if total_items_count >= 11:
+        discount_percentage = 0.09 # 9% for 11 or more items
+    elif total_items_count >= 8:
+        discount_percentage = 0.06 # 6% for 8 or more items
+    elif total_items_count >= 5:
+        discount_percentage = 0.03 # 3% for 5 or more items
 
     discount_amount = round(initial_subtotal * discount_percentage, 2)
     subtotal_after_discount = round(initial_subtotal - discount_amount, 2)
@@ -318,13 +318,11 @@ elif st.session_state.wants_to_order:
     st.markdown("---")
     st.subheader("Menu Items")
 
-    # all_menu_items is already populated at the top level from the active 'menu'
-    # so we can directly use it here.
-
     with st.form(key="order_selection_form"):
         st.write("Select the items you'd like to order and specify quantities.")
         
-        order_changed_in_form = False 
+        # Temporary dictionary to collect new quantities from the form
+        temp_form_order = {}
         
         for category, items in menu.items(): # Use global 'menu' to display categories
             st.markdown(f"**__{category}__**")
@@ -332,30 +330,33 @@ elif st.session_state.wants_to_order:
             col_idx = 0
             for item_name, price in items.items():
                 with cols[col_idx]:
-                    # Display name and price prominently, then the number input
                     st.markdown(f"**{item_name}** (₹{price})") 
-                    current_qty = st.session_state.current_order.get(item_name, 0)
-                    new_qty = st.number_input(f"qty_{item_name}", # Unique key for number_input
+                    # Get current quantity from session state for default value
+                    current_qty_in_session = st.session_state.current_order.get(item_name, 0)
+                    new_qty = st.number_input(f"qty_{item_name}", 
                                               min_value=0, 
-                                              value=current_qty, 
+                                              value=current_qty_in_session, 
                                               step=1, 
-                                              key=f"qty_input_{item_name}", # Ensure unique key for widget
+                                              key=f"qty_input_form_{item_name}", # Ensure unique key for widget
                                               label_visibility="collapsed") # Hide default label
-                    if new_qty > 0:
-                        if st.session_state.current_order.get(item_name) != new_qty:
-                            st.session_state.current_order[item_name] = new_qty
-                            order_changed_in_form = True
-                    elif item_name in st.session_state.current_order and new_qty == 0:
-                        del st.session_state.current_order[item_name]
-                        order_changed_in_form = True
+                    temp_form_order[item_name] = new_qty # Store new quantity from form input
                 col_idx = (col_idx + 1) % 3
 
         submit_order_button = st.form_submit_button("Update Order")
-        if submit_order_button and order_changed_in_form:
-            st.session_state.show_bill = False
-            st.session_state.last_bill_details = None
-            st.toast("Order updated!")
-            st.rerun()
+        
+        if submit_order_button:
+            # Reconstruct the new order based on quantities from the submitted form
+            updated_order = {item: qty for item, qty in temp_form_order.items() if qty > 0}
+            
+            # Check if the order has actually changed to avoid unnecessary reruns/toasts
+            if updated_order != st.session_state.current_order:
+                st.session_state.current_order = updated_order
+                st.session_state.show_bill = False
+                st.session_state.last_bill_details = None
+                st.toast("Order updated!")
+                st.rerun() # Rerun to display the updated current order immediately
+            else:
+                st.info("No changes detected in the order.")
 
     st.markdown("---")
     st.subheader("Your Current Order")
