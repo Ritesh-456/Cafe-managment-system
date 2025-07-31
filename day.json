@@ -1,0 +1,35 @@
+{
+  "Beverages": {
+    "Americano": 85,
+    "Flat White": 115,
+    "Iced Americano": 95,
+    "Buttermilk": 40,
+    "Sweet Lassi": 60,
+    "Mint Mojito": 75
+  },
+  "Breakfast": {
+    "Masala Dosa": 90,
+    "Poha": 50,
+    "Aloo Paratha": 70,
+    "Idli Sambar": 65,
+    "Veg Upma": 60
+  },
+  "Bakery": {
+    "Croissant": 80,
+    "Garlic Bread": 85,
+    "Banana Bread Slice": 70,
+    "Fruit Danish": 90,
+    "Cinnamon Roll": 100
+  },
+  "Healthy Bites": {
+    "Fruit Salad Bowl": 120,
+    "Granola Yogurt Cup": 130,
+    "Sprouts Chaat": 70,
+    "Peanut Butter Toast": 60
+  },
+  "Day Specials": {
+    "South Indian Combo (Idli + Dosa + Filter Coffee)": 180,
+    "Healthy Morning Platter": 200,
+    "Breakfast Sandwich Combo": 160
+  }
+}

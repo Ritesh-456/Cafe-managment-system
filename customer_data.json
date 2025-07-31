@@ -1,0 +1,64 @@
+{
+    "Ritesh brahmachari_1234567981": {
+        "Visiting_time": "Evening",
+        "date": "31/07/2025",
+        "day": "Thursday",
+        "bill_time": "19:48:41",
+        "user_items": [
+            "Evening Platter (Starter + Main)",
+            "Evening Platter (Starter + Main)",
+            "Chocolate Lava Cake",
+            "Chocolate Lava Cake",
+            "Cold Coffee",
+            "Cold Coffee"
+        ],
+        "user_price": [
+            280,
+            280,
+            160,
+            160,
+            110,
+            110
+        ],
+        "total": 1298.0
+    },
+    "Kalyan mohapatra_9348274599": {
+        "Visiting_time": "Evening",
+        "date": "31/07/2025",
+        "day": "Thursday",
+        "bill_time": "19:57:24",
+        "user_items": [
+            "Grilled Sandwich",
+            "Grilled Sandwich",
+            "Lemon Tea",
+            "Lemon Tea"
+        ],
+        "user_price": [
+            120,
+            120,
+            55,
+            55
+        ],
+        "total": 413.0
+    },
+    "Kali das": {
+        "phone_number": "213467897",
+        "Visiting_time": "Evening",
+        "date": "31/07/2025",
+        "day": "Thursday",
+        "bill_time": "20:05:13",
+        "user_items": [
+            "Kulfi",
+            "Kulfi",
+            "Kulfi",
+            "Kulfi"
+        ],
+        "user_price": [
+            70,
+            70,
+            70,
+            70
+        ],
+        "total": 330.4
+    }
+}

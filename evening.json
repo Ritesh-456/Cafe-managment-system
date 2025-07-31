@@ -1,0 +1,32 @@
+{
+  "Beverages": {
+    "Hot Chocolate": 140,
+    "Irish Coffee": 160,
+    "Masala Chai": 50,
+    "Lemon Tea": 55,
+    "Cold Coffee": 110,
+    "Iced Latte": 135
+  },
+  "Starters": {
+    "Paneer Tikka": 160,
+    "Spring Rolls": 140,
+    "Cheesy Nachos": 130,
+    "Chilli Potato": 120,
+    "Tandoori Momos": 150
+  },
+  "Main Course": {
+    "Pasta (Red Sauce)": 160,
+    "Grilled Sandwich": 120,
+    "Veg Wrap": 110,
+    "Cheese Garlic Bread": 90
+  },
+  "Desserts": {
+    "Chocolate Lava Cake": 160,
+    "Walnut Brownie": 110,
+    "Kulfi": 70
+  },
+  "Specials": {
+    "Evening Platter (Starter + Main)": 280,
+    "Dessert Delight Combo": 220
+  }
+}
