@@ -111,7 +111,10 @@ else:
         st.session_state.current_order_prices = []
 
     # Input for adding items
+    # To clear the input field, we will set its default value to an empty string on each run.
+    # The trick is to trigger a rerun after adding an item.
     item_input = st.text_input("Enter a dish name to add to your order:", key="item_input_field")
+
 
     if st.button("Add Item to Order"):
         if item_input: # Ensure input is not empty
@@ -123,8 +126,10 @@ else:
                         st.session_state.current_order_prices.append(price)
                         st.success(f"✅ '{item_name}' added to your order.")
                         found = True
-                        # Clear the text input field after adding an item
-                        st.session_state.item_input_field = "" # Resetting the key clears the input
+                        # Instead of directly modifying the session state linked to the key,
+                        # trigger a rerun. This will cause the text_input to re-render with
+                        # its default empty value.
+                        st.rerun() # Rerun to clear the input field
                         break
                 if found:
                     break
@@ -205,9 +210,3 @@ else:
 
 st.markdown("---")
 st.write("Developed with ❤️ for Dill-Khus Cafe")
-
-# --- Important Note on Data Persistence ---
-# In a deployed Streamlit app, writing to local files (like customer_data.json)
-# might not be persistent across app restarts or multiple user sessions if deployed on a shared server.
-# For production applications, consider using a database (e.g., SQLite, PostgreSQL)
-# or cloud storage solutions (e.g., Google Cloud Storage, AWS S3) for persistent data storage.
