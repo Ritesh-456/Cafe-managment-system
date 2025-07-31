@@ -2,12 +2,11 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
-# Removed: import streamlit.components.v1 as components # Not needed without live clock
 
 # --- Configuration & File Paths ---
 CAFE_NAME = "Bhakti's Cafe.com"
 CUSTOMER_DATA_FILE = "customer_data.json"
-CONFIG_FILE = "config.json" # New: Centralized config file
+CONFIG_FILE = "config.json" # Centralized config file for cafe hours
 
 # --- Helper Functions ---
 
@@ -73,7 +72,7 @@ def load_menu(file_name):
     """Loads menu from JSON file."""
     return load_json_data(file_name)
 
-def generate_and_save_bill(customer_name, customer_phone, current_order, all_menu_items, session, cafe_status_datetime):
+def generate_and_save_bill(customer_name, customer_phone, current_order, all_menu_items, session):
     """Calculates bill, saves customer data, and updates session state for display."""
     # current_order is now a dict {item_name: quantity}
     subtotal = sum(all_menu_items.get(item, 0) * qty for item, qty in current_order.items())
@@ -195,32 +194,34 @@ if 'last_bill_details' not in st.session_state:
 
 st.header("Place Your Order")
 
-# Customer Identity Form
-customer_data = load_json_data(CUSTOMER_DATA_FILE) or {} # Ensure customer_data is a dict even if file is new/corrupt
-
-with st.form("customer_form"):
-    name = st.text_input("Enter your Name:", value=st.session_state.customer_name).strip().capitalize()
-    phone = st.text_input("Enter your Phone Number:", value=st.session_state.customer_phone).strip()
-    
-    submitted_identity = st.form_submit_button("Confirm Identity")
-
-    if submitted_identity:
-        # Reset bill display when identity is confirmed/changed
-        st.session_state.show_bill = False 
-        st.session_state.last_bill_details = None
-        st.session_state.customer_name = name
-        st.session_state.customer_phone = phone
-        if name in customer_data:
-            # MODIFIED GREETING HERE
-            st.info(f'👋 Hello, {name} thank you for revisiting!')
-        else:
-            st.success(f"👋 Hello {name}, nice to meet you!")
-        st.rerun() # Rerun to refresh the display based on new identity status
-
-# Order Section (shown only if identity is confirmed)
+# Customer Identity Form (Conditional Rendering)
+# This block only displays the form if customer_name or customer_phone are NOT set in session_state
 if not st.session_state.customer_name or not st.session_state.customer_phone:
-    st.warning("Please enter your name and phone number to proceed with ordering.")
+    with st.form("customer_form"):
+        name_input = st.text_input("Enter your Name:", value=st.session_state.customer_name, key="customer_name_input_form").strip().capitalize()
+        phone_input = st.text_input("Enter your Phone Number:", value=st.session_state.customer_phone, key="customer_phone_input_form").strip()
+        
+        submitted_identity = st.form_submit_button("Confirm Identity")
+
+        if submitted_identity:
+            if name_input and phone_input: # Ensure both fields are filled
+                st.session_state.customer_name = name_input
+                st.session_state.customer_phone = phone_input
+
+                customer_data = load_json_data(CUSTOMER_DATA_FILE) or {} # Load data here to check for revisit
+                
+                # MODIFIED GREETING HERE
+                if name_input in customer_data:
+                    st.info(f'👋 Hello, {name_input} thank you for revisiting!')
+                else:
+                    st.success(f"👋 Hello {name_input}, nice to meet you!")
+                
+                st.rerun() # Rerun to proceed to the order section (this will hide the form)
+            else:
+                st.warning("Please enter both your name and phone number.")
 else:
+    # Order Section (shown only if identity is confirmed)
+    # The 'Hello, {name}' greeting is displayed here, as the form is now hidden
     st.subheader(f"Hello, {st.session_state.customer_name}! Here's our {session} Menu:")
 
     # Display Menu and Order Selection
@@ -344,6 +345,8 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
             st.rerun()
 
 # --- Global "Start New Customer Order" Button (always visible if an order is active) ---
+# This button provides an escape hatch to start fresh even if no bill was generated.
+# It only shows if there's an active customer or order, or a bill displayed.
 if not st.session_state.show_bill and (st.session_state.customer_name or st.session_state.current_order):
     st.markdown("---") 
     if st.button("Start New Customer Order", key="start_new_customer_global"):
