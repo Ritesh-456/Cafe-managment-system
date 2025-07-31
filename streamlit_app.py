@@ -2,6 +2,7 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
+import streamlit.components.v1 as components # Import for custom HTML
 
 # --- Cafe Time Setup ---
 day_start = datetime.strptime("10:00:00", "%H:%M:%S").time()
@@ -11,19 +12,20 @@ evening_end = datetime.strptime("22:00:00", "%H:%M:%S").time()
 
 # --- Streamlit Page Configuration ---
 st.set_page_config(
-    page_title="Bhakti's Cafe",
+    page_title="Bhakti's cafe",
     layout="wide",
     initial_sidebar_state="auto"
 )
 
-st.title("☕ Welcome to Bhakti's Cafe")
+st.title("☕ Welcome to Bhakti's cafe")
 
 # --- Determine Current Time and Session ---
 now = datetime.now()
 current_time = now.time()
 today_date = now.strftime("%d/%m/%Y")
 today_day = now.strftime("%A")
-bill_time = now.strftime("%H:%M:%S")
+# bill_time = now.strftime("%H:%M:%S") # This variable will now be handled by JS for display
+
 
 session = None
 file_name = None
@@ -42,7 +44,34 @@ else:
 st.sidebar.header("Cafe Details")
 st.sidebar.write(f"**Session:** {session} Menu")
 st.sidebar.write(f"**Date:** {today_date} ({today_day})")
-st.sidebar.write(f"**Current Time:** {bill_time}")
+
+# --- Live Clock in Sidebar ---
+# HTML and JavaScript for a continuously updating clock
+live_clock_html = """
+<div style="font-weight: bold;">Current Time: <span id="live-time"></span></div>
+<script>
+    function updateLiveClock() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const liveTimeElement = document.getElementById('live-time');
+        if (liveTimeElement) {
+            liveTimeElement.innerText = `${hours}:${minutes}:${seconds}`;
+        }
+    }
+    // Update every second
+    setInterval(updateLiveClock, 1000);
+    // Initial call to display time immediately
+    updateLiveClock();
+</script>
+"""
+components.html(live_clock_html, height=30) # Embed the HTML component
+
+# We still need bill_time for saving the order, so let's keep it here for data purposes
+# This 'bill_time' will capture the time when the 'Generate Bill' button is clicked (i.e., when the script runs that part)
+bill_time = now.strftime("%H:%M:%S")
+
 
 # --- Load Menu ---
 menu = {}
@@ -245,8 +274,9 @@ elif st.session_state.app_stage == 'bill_generated':
     st.markdown(f"**Phone Number:** {st.session_state.customer_phone}")
     st.markdown(f"**Visit Session:** {session}")
     st.markdown(f"**Date:** {today_date}")
+    # We use the 'bill_time' captured at the start of the script run that leads to bill generation
     st.markdown(f"**Day:** {today_day}")
-    st.markdown(f"**Bill Time:** {bill_time}")
+    st.markdown(f"**Bill Time:** {bill_time}") 
     
     st.write("---")
     st.markdown("### Order Summary:")
@@ -265,7 +295,7 @@ elif st.session_state.app_stage == 'bill_generated':
         "Visiting_time": session,
         "date": today_date,
         "day": today_day,
-        "bill_time": bill_time,
+        "bill_time": bill_time, # Save the bill_time captured at the start of this script run
         "user_items": st.session_state.current_order_items,
         "user_price": st.session_state.current_order_prices,
         "total": total
@@ -290,4 +320,4 @@ elif st.session_state.app_stage == 'bill_generated':
         st.rerun()
 
 st.markdown("---")
-st.write("Developed with ❤️ for Bhakti's Cafe")
+st.write("Developed with ❤️ for Bhakti's cafe")
