@@ -2,12 +2,13 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
+import streamlit.components.v1 as components # Import for embedding HTML
 
 # --- Configuration ---
 CAFE_NAME = "Bhakti's Cafe.com"
 CUSTOMER_DATA_FILE = "customer_data.json"
 
-# Cafe time setup
+# Cafe time setup (static times for opening/closing)
 day_start = datetime.strptime("10:00:00", "%H:%M:%S").time()
 day_end = datetime.strptime("15:00:00", "%H:%M:%S").time()
 evening_start = datetime.strptime("17:00:00", "%H:%M:%S").time()
@@ -22,7 +23,7 @@ def load_customer_data():
             with open(CUSTOMER_DATA_FILE, "r") as f:
                 return json.load(f)
         except json.JSONDecodeError:
-            # Handle empty or corrupted JSON file
+            # Handle empty or corrupted JSON file (e.g., if file exists but is malformed)
             return {}
     return {}
 
@@ -30,18 +31,6 @@ def save_customer_data(data):
     """Saves customer data to JSON file."""
     with open(CUSTOMER_DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
-
-def get_cafe_status():
-    """Determines current cafe session and status."""
-    now = datetime.now()
-    current_time = now.time()
-    
-    if day_start <= current_time <= day_end:
-        return "Day", "day.json", now
-    elif evening_start <= current_time <= evening_end:
-        return "Evening", "evening.json", now
-    else:
-        return "Closed", None, now
 
 def load_menu(file_name):
     """Loads menu from JSON file."""
@@ -58,28 +47,64 @@ st.set_page_config(page_title=CAFE_NAME, layout="centered")
 st.title(f"☕ Welcome to {CAFE_NAME}")
 
 # Show current time on dashboard
-now = datetime.now()
 st.subheader("Current Time & Date")
+
+# Get datetime once at script execution start for current date/day display
+# The live clock will update in real-time using JavaScript.
+current_app_load_datetime = datetime.now() 
+
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Date", now.strftime("%d/%m/%Y"))
+    st.metric("Date", current_app_load_datetime.strftime("%d/%m/%Y"))
 with col2:
-    st.metric("Day", now.strftime("%A"))
+    st.metric("Day", current_app_load_datetime.strftime("%A"))
 with col3:
-    st.metric("Time", now.strftime("%H:%M:%S"))
+    # Live Clock using Streamlit Components (JavaScript)
+    components.html(
+        """
+        <div id="live-clock" style="font-family: monospace; font-size: 2em; text-align: center; color: #ff4b4b; margin-top: -15px;"></div>
+        <script>
+            function updateClock() {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                document.getElementById('live-clock').textContent = `${hours}:${minutes}:${seconds}`;
+            }
+            setInterval(updateClock, 1000); // Update every second
+            updateClock(); // Initial call to display immediately
+        </script>
+        """,
+        height=70, # Adjust height to prevent excess space
+        scrolling=False
+    )
 
 st.markdown("---")
 
-# Determine cafe status and load menu
-session, menu_file, current_datetime = get_cafe_status()
+# Determine cafe status and load menu based on current real-time
+now_for_status_check = datetime.now()
+current_time_for_status = now_for_status_check.time()
 
-if session == "Closed":
+cafe_is_open = False
+session = "Closed" # Default to closed
+file_name_to_load = None
+
+if day_start <= current_time_for_status <= day_end:
+    session = "Day"
+    file_name_to_load = "day.json"
+    cafe_is_open = True
+elif evening_start <= current_time_for_status <= evening_end:
+    session = "Evening"
+    file_name_to_load = "evening.json"
+    cafe_is_open = True
+
+if not cafe_is_open:
     st.error("❌ Sorry! Cafe is closed right now.")
     st.info(f"🕒 Working Hours: {day_start.strftime('%I%p')}–{day_end.strftime('%I%p')} and {evening_start.strftime('%I%p')}–{evening_end.strftime('%I%p')}")
     st.stop() # Stop the app if cafe is closed
 else:
     st.success(f"🎉 Cafe is open! Serving our **{session}** menu.")
-    menu = load_menu(menu_file)
+    menu = load_menu(file_name_to_load)
     if not menu:
         st.stop() # Stop if menu couldn't be loaded
 
@@ -97,7 +122,7 @@ if 'last_bill_details' not in st.session_state:
 
 st.header("Place Your Order")
 
-# Customer Identity
+# Customer Identity Form
 customer_data = load_customer_data()
 
 with st.form("customer_form"):
@@ -117,9 +142,9 @@ with st.form("customer_form"):
             st.info(f'👋 Hello {name}, once again! Hope you enjoyed that {prev_day.lower()}!')
         else:
             st.success(f"👋 Hello {name}, nice to meet you!")
-        # To make sure order selection is refreshed with cleared bill display
-        st.rerun() 
+        st.rerun() # Rerun to refresh the display based on new identity status
 
+# Order Section (shown only if identity is confirmed)
 if not st.session_state.customer_name or not st.session_state.customer_phone:
     st.warning("Please enter your name and phone number to proceed with ordering.")
 else:
@@ -187,25 +212,27 @@ else:
         st.write(f"**Subtotal: ₹{subtotal:.2f}**")
 
         if st.button("Generate Bill"):
-            # This check is technically redundant here because the button only appears if current_order is not empty
             if not st.session_state.current_order: 
                 st.warning("Your cart is empty. Please add items to generate a bill.")
             else:
+                # Capture the exact datetime of bill generation for bill details
+                bill_moment_datetime = datetime.now()
+                bill_gen_time = bill_moment_datetime.strftime("%H:%M:%S")
+                bill_date = bill_moment_datetime.strftime("%d/%m/%Y")
+                bill_day = bill_moment_datetime.strftime("%A")
+
                 # Calculate bill
                 gst = round(subtotal * 0.18, 2)
                 total = round(subtotal + gst, 2)
                 
-                # Get current time for bill generation
-                bill_gen_time = datetime.now().strftime("%H:%M:%S")
-
                 # Store bill details in session state to display after rerun
                 st.session_state.last_bill_details = {
                     "customer_name": st.session_state.customer_name,
                     "phone_number": st.session_state.customer_phone,
-                    "visit_session": session,
-                    "date": current_datetime.strftime('%d/%m/%Y'),
-                    "day": current_datetime.strftime('%A'),
-                    "bill_generation_time": bill_gen_time, # Specific time for bill
+                    "visit_session": session, # This session is based on cafe status at the time of order
+                    "date": bill_date,         # Precise date at bill generation
+                    "day": bill_day,           # Precise day at bill generation
+                    "bill_generation_time": bill_gen_time, # Precise time at bill generation
                     "items_ordered": [], 
                     "subtotal": subtotal,
                     "gst": gst,
@@ -221,7 +248,7 @@ else:
                     st.session_state.last_bill_details["items_ordered"].append(
                         {"item": item, "quantity": qty, "price_per_unit": price_per_item, "total_item_price": item_total}
                     )
-                    # For original customer_data.json structure
+                    # For original customer_data.json structure, add item as many times as quantity
                     for _ in range(qty): 
                         ordered_items_list.append(item)
                         ordered_prices_list.append(price_per_item)
@@ -231,9 +258,9 @@ else:
                 customer_data[st.session_state.customer_name] = {
                     "phone_number": st.session_state.customer_phone,
                     "Visiting_time": session,
-                    "date": current_datetime.strftime("%d/%m/%Y"),
-                    "day": current_datetime.strftime("%A"),
-                    "bill_time": bill_gen_time, # Store specific bill generation time
+                    "date": bill_date, # Use precise date for saving
+                    "day": bill_day,   # Use precise day for saving
+                    "bill_time": bill_gen_time, # Store precise bill generation time
                     "user_items": ordered_items_list,
                     "user_price": ordered_prices_list,
                     "total": total
@@ -249,7 +276,7 @@ else:
         st.info("Your order is empty. Please select items from the menu.")
 
 # --- Display the generated bill (separate from generation logic) ---
-# This block will execute on the rerun triggered by "Generate Bill"
+# This block will execute on the rerun triggered by "Generate Bill" or "Update Order"
 if st.session_state.show_bill and st.session_state.last_bill_details:
     bill = st.session_state.last_bill_details
     st.markdown("### 🧾 ========== BILL ==========")
@@ -270,9 +297,6 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
     st.markdown(f"### **Total Payable: ₹{bill['total']:.2f}/-**")
     st.markdown("=============================")
     
-    # Optionally, provide a button to clear the bill display if user wants
-    # or let it persist until a new order is started.
-
 # --- "Start New Customer Order" Button ---
 # This button clears everything and allows for a fresh start.
 if st.session_state.customer_name or st.session_state.current_order or st.session_state.show_bill:
