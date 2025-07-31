@@ -2,12 +2,17 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
-import streamlit.components.v1 as components
+# No need to import streamlit.components.v1 as components if not using live clock
 
-# --- Configuration & File Paths ---
+# --- Configuration ---
 CAFE_NAME = "Bhakti's Cafe.com"
 CUSTOMER_DATA_FILE = "customer_data.json"
-CONFIG_FILE = "config.json"
+
+# Cafe time setup (static times for opening/closing)
+day_start = datetime.strptime("10:00:00", "%H:%M:%S").time()
+day_end = datetime.strptime("15:00:00", "%H:%M:%S").time()
+evening_start = datetime.strptime("17:00:00", "%H:%M:%S").time()
+evening_end = datetime.strptime("22:00:00", "%H:%M:%S").time()
 
 # --- Helper Functions ---
 
@@ -33,38 +38,14 @@ def save_json_data(data, file_path):
     except Exception as e:
         st.error(f"Error saving data to '{file_path}': {e}")
 
-def load_cafe_config():
-    """Loads cafe operating hours from config.json."""
-    config = load_json_data(CONFIG_FILE)
-    if config:
-        try:
-            return {
-                "day_start": datetime.strptime(config["day_start"], "%H:%M:%S").time(),
-                "day_end": datetime.strptime(config["day_end"], "%H:%M:%S").time(),
-                "evening_start": datetime.strptime(config["evening_start"], "%H:%M:%S").time(),
-                "evening_end": datetime.strptime(config["evening_end"], "%H:%M:%S").time()
-            }
-        except KeyError:
-            st.error(f"Configuration file '{CONFIG_FILE}' is missing required time keys (e.g., 'day_start').")
-            return None
-        except ValueError:
-            st.error(f"Configuration file '{CONFIG_FILE}' contains invalid time formats. Use HH:MM:SS.")
-            return None
-    else:
-        st.error(f"Configuration file '{CONFIG_FILE}' not found or is empty/corrupted.")
-        return None
-
-def get_cafe_status(cafe_hours):
+def get_cafe_status():
     """Determines current cafe session and status based on real-time."""
-    if not cafe_hours:
-        return "Error", None, None # Cannot determine status if config failed to load
-
     now = datetime.now()
     current_time = now.time()
     
-    if cafe_hours["day_start"] <= current_time <= cafe_hours["day_end"]:
+    if day_start <= current_time <= day_end:
         return "Day", "day.json", now
-    elif cafe_hours["evening_start"] <= current_time <= cafe_hours["evening_end"]:
+    elif evening_start <= current_time <= evening_end:
         return "Evening", "evening.json", now
     else:
         return "Closed", None, now
@@ -143,52 +124,27 @@ st.title(f"☕ Welcome to {CAFE_NAME}")
 # Show current time on dashboard
 st.subheader("Current Time & Date")
 
-# Get current datetime for Date and Day metrics (updates on each rerun)
-current_datetime_for_display = datetime.now() 
+# Get current datetime for Date, Day, and Time metrics (updates on each rerun)
+current_datetime_for_dashboard = datetime.now() 
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Date", current_datetime_for_display.strftime("%d/%m/%Y"))
+    st.metric("Date", current_datetime_for_dashboard.strftime("%d/%m/%Y"))
 with col2:
-    st.metric("Day", current_datetime_for_display.strftime("%A"))
+    st.metric("Day", current_datetime_for_dashboard.strftime("%A"))
 with col3:
-    # Live Clock using Streamlit Components (JavaScript)
-    components.html(
-        """
-        <div id="live-clock" style="font-family: monospace; font-size: 2em; text-align: center; color: #ff4b4b; margin-top: -15px;"></div>
-        <script>
-            function updateClock() {
-                const now = new Date();
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const seconds = String(now.getSeconds()).padStart(2, '0');
-                document.getElementById('live-clock').textContent = `${hours}:${minutes}:${seconds}`;
-            }
-            setInterval(updateClock, 1000); // Update every second
-            updateClock(); // Initial call to display immediately
-        </script>
-        """,
-        height=70, # Adjust height to prevent excess space
-        scrolling=False
-    )
+    st.metric("Time", current_datetime_for_dashboard.strftime("%H:%M:%S")) # Display current time using st.metric
+
 
 st.markdown("---")
 
-# Load cafe operating hours
-cafe_hours = load_cafe_config()
-if not cafe_hours:
-    st.error("Cannot start application: Cafe operating hours could not be loaded from config.json.")
-    st.stop() # Stop the app if config is critical
-
 # Determine cafe status and load menu based on current real-time
-session, menu_file_name, cafe_status_datetime = get_cafe_status(cafe_hours)
+session, menu_file_name, cafe_status_datetime = get_cafe_status()
 
 if session == "Closed":
     st.error("❌ Sorry! Cafe is closed right now.")
-    st.info(f"🕒 Working Hours: {cafe_hours['day_start'].strftime('%I%p')}–{cafe_hours['day_end'].strftime('%I%p')} and {cafe_hours['evening_start'].strftime('%I%p')}–{cafe_hours['evening_end'].strftime('%I%p')}")
+    st.info(f"🕒 Working Hours: {day_start.strftime('%I%p')}–{day_end.strftime('%I%p')} and {evening_start.strftime('%I%p')}–{evening_end.strftime('%I%p')}")
     st.stop() # Stop the app if cafe is closed
-elif session == "Error":
-    st.stop() # Stop if there was an error loading config
 else:
     st.success(f"🎉 Cafe is open! Serving our **{session}** menu.")
     menu = load_menu(menu_file_name)
@@ -257,7 +213,8 @@ else:
             col_idx = 0
             for item_name, price in items.items():
                 with cols[col_idx]:
-                    st.markdown(f"**{item_name}** (₹{price})") # Display name and price prominently
+                    # Display name and price prominently, then the number input
+                    st.markdown(f"**{item_name}** (₹{price})") 
                     current_qty = st.session_state.current_order.get(item_name, 0)
                     new_qty = st.number_input(f"qty_{item_name}", # Unique key for number_input
                                               min_value=0, 
@@ -314,7 +271,7 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
     bill = st.session_state.last_bill_details
     st.markdown("### 🧾 ========== BILL ==========")
     st.write(f"**Customer Name:** {bill['customer_name']}")
-    st.write(f"**Phone Number:** {bill['phone_number']}")
+    st.write(f"**Phone Number:** {bill['phone_phone_number']}")
     st.write(f"**Visit Session:** {bill['visit_session']}")
     st.write(f"**Date:** {bill['date']}")
     st.write(f"**Day:** {bill['day']}")
