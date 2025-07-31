@@ -86,7 +86,7 @@ def get_cafe_status(cafe_hours):
             # Before morning opening
             closed_message = f"Cafe is not yet open. We open at {cafe_hours['day_start'].strftime('%I:%M %p')} today!"
         else:
-            closed_message = f"Cafe is closed. Please check our working hours: Day ({cafe_hours['day_start'].strftime('%I:%M %p')} - {cafe_hours['day_end'].strftime('%I:%M %p')}), Evening ({cafe_hours['evening_start'].strftime('%I:%M %p')} - {cafe_hours['evening_end'].strftime('%I:%M %p')})." # Fallback
+            closed_message = "Cafe is closed. Please check our working hours: Day ({cafe_hours['day_start'].strftime('%I:%M %p')} - {cafe_hours['day_end'].strftime('%I:%M %p')}), Evening ({cafe_hours['evening_start'].strftime('%I:%M %p')} - {cafe_hours['evening_end'].strftime('%I:%M %p')})." # Fallback
 
         return "Closed", None, now, False, closed_message
 
@@ -104,12 +104,12 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
     total_items_count = sum(current_order.values())
     discount_percentage = 0.0
 
-    if total_items_count >= 11:
-        discount_percentage = 0.09 # 9% for 11 or more items
-    elif total_items_count >= 8:
-        discount_percentage = 0.06 # 6% for 8 or more items
-    elif total_items_count >= 5:
-        discount_percentage = 0.03 # 3% for 5 or more items
+    if total_items_count > 11:
+        discount_percentage = 0.09 # 9% for more than 11 items
+    elif total_items_count > 8:
+        discount_percentage = 0.06 # 6% for more than 8 items
+    elif total_items_count > 5:
+        discount_percentage = 0.03 # 3% for more than 5 items
 
     discount_amount = round(initial_subtotal * discount_percentage, 2)
     subtotal_after_discount = round(initial_subtotal - discount_amount, 2)
@@ -267,7 +267,7 @@ st.header("Place Your Order")
 
 # --- Identity Confirmation or Order Flow ---
 if not st.session_state.customer_name or not st.session_state.customer_phone:
-    # Scenario: Cafe Open, Identity NOT Confirmed
+    # Scenario: Cafe Open, Identity NOT Confirmed - Show Form
     with st.form("customer_form"):
         name_input = st.text_input("Enter your Name:", value=st.session_state.customer_name, key="customer_name_input_form").strip().capitalize()
         phone_input = st.text_input("Enter your Phone Number:", value=st.session_state.customer_phone, key="customer_phone_input_form").strip()
@@ -287,111 +287,123 @@ if not st.session_state.customer_name or not st.session_state.customer_phone:
                 else:
                     st.success(f"👋 Hello {name_input}, nice to meet you!")
                 
-                # Now ask if they want to order
+                # After confirming identity, user should see the menu and decide to order
                 st.session_state.wants_to_order = None # Set to None to indicate decision pending
-                st.rerun() # Rerun to show the order prompt
+                st.rerun() # Rerun to show the menu and order prompt
             else:
                 st.warning("Please enter both your name and phone number.")
 
-elif st.session_state.wants_to_order is None:
-    # Scenario: Cafe Open, Identity Confirmed, Decision to Order Pending
-    st.subheader(f"Hello, {st.session_state.customer_name}! Would you like to order food?")
-    col_yes, col_no = st.columns(2)
-    with col_yes:
-        if st.button("Yes, I'd like to order!", key="wants_order_yes"):
-            st.session_state.wants_to_order = True
-            st.rerun()
-    with col_no:
-        if st.button("No, thank you.", key="wants_order_no"):
-            st.session_state.customer_name = "" # Clear identity
-            st.session_state.customer_phone = ""
-            st.session_state.current_order = {} # Clear any partial order
-            st.session_state.wants_to_order = False # Reset state
-            st.info("No problem! Returning to the identity form.")
-            st.rerun()
-
-elif st.session_state.wants_to_order:
-    # Scenario: Cafe Open, Identity Confirmed, WANTS to order
+else: # Identity IS Confirmed
+    # Always show this greeting and menu once identity is confirmed
     st.subheader(f"Hello, {st.session_state.customer_name}! Here's our {session} Menu:")
 
-    # Display Menu and Order Selection
+    # Display Menu with Expanders
     st.markdown("---")
-    st.subheader("Menu Items")
+    st.header(f"Our Menu ({session} Session)")
+    for category, items in menu.items(): # Use global 'menu' to display categories
+        with st.expander(f"**{category}**", expanded=True):
+            st.markdown("---")
+            for item, price in items.items():
+                st.markdown(f"- **{item}**: ₹{price}")
+            st.markdown("---")
 
-    with st.form(key="order_selection_form"):
-        st.write("Select the items you'd like to order and specify quantities.")
-        
-        # Temporary dictionary to collect new quantities from the form
-        temp_form_order = {}
-        
-        for category, items in menu.items(): # Use global 'menu' to display categories
-            st.markdown(f"**__{category}__**")
-            cols = st.columns(3) 
-            col_idx = 0
-            for item_name, price in items.items():
-                with cols[col_idx]:
-                    st.markdown(f"**{item_name}** (₹{price})") 
-                    # Get current quantity from session state for default value
-                    current_qty_in_session = st.session_state.current_order.get(item_name, 0)
-                    new_qty = st.number_input(f"qty_{item_name}", 
-                                              min_value=0, 
-                                              value=current_qty_in_session, 
-                                              step=1, 
-                                              key=f"qty_input_form_{item_name}", # Ensure unique key for widget
-                                              label_visibility="collapsed") # Hide default label
-                    temp_form_order[item_name] = new_qty # Store new quantity from form input
-                col_idx = (col_idx + 1) % 3
+    st.markdown("---")
 
-        submit_order_button = st.form_submit_button("Update Order")
-        
-        if submit_order_button:
-            # Reconstruct the new order based on quantities from the submitted form
-            updated_order = {item: qty for item, qty in temp_form_order.items() if qty > 0}
+    if st.session_state.wants_to_order is None:
+        # Scenario: Cafe Open, Identity Confirmed, Decision to Order Pending - Show Order Prompt
+        st.subheader(f"Would you like to place an order?")
+        col_yes, col_no = st.columns(2)
+        with col_yes:
+            if st.button("Yes, I'd like to order!", key="wants_order_yes"):
+                st.session_state.wants_to_order = True
+                st.rerun()
+        with col_no:
+            if st.button("No, thank you.", key="wants_order_no"):
+                st.session_state.customer_name = "" # Clear identity
+                st.session_state.customer_phone = ""
+                st.session_state.current_order = {} # Clear any partial order
+                st.session_state.wants_to_order = False # Reset state
+                st.info("No problem! Returning to the identity form.")
+                st.rerun()
+
+    elif st.session_state.wants_to_order:
+        # Scenario: Cafe Open, Identity Confirmed, WANTS to order - Show Order Form
+        st.subheader("Time to select your delicious items!")
+
+        # Display Menu and Order Selection
+        st.markdown("---")
+        st.subheader("Menu Items") # This repeats a bit, consider if you want this header again or just rely on above
+
+        with st.form(key="order_selection_form"):
+            st.write("Select the items you'd like to order and specify quantities.")
             
-            # Check if the order has actually changed to avoid unnecessary reruns/toasts
-            if updated_order != st.session_state.current_order:
-                st.session_state.current_order = updated_order
+            order_changed_in_form = False 
+            
+            for category, items in menu.items(): # Use global 'menu' to display categories
+                st.markdown(f"**__{category}__**")
+                cols = st.columns(3) 
+                col_idx = 0
+                for item_name, price in items.items():
+                    with cols[col_idx]:
+                        # Display name and price prominently, then the number input
+                        st.markdown(f"**{item_name}** (₹{price})") 
+                        current_qty = st.session_state.current_order.get(item_name, 0)
+                        new_qty = st.number_input(f"qty_{item_name}", # Unique key for number_input
+                                                  min_value=0, 
+                                                  value=current_qty, 
+                                                  step=1, 
+                                                  key=f"qty_input_{item_name}", # Ensure unique key for widget
+                                                  label_visibility="collapsed") # Hide default label
+                        if new_qty > 0:
+                            if st.session_state.current_order.get(item_name) != new_qty:
+                                st.session_state.current_order[item_name] = new_qty
+                                order_changed_in_form = True
+                        elif item_name in st.session_state.current_order and new_qty == 0:
+                            del st.session_state.current_order[item_name]
+                            order_changed_in_form = True
+                    col_idx = (col_idx + 1) % 3
+
+            submit_order_button = st.form_submit_button("Update Order")
+            if submit_order_button and order_changed_in_form:
                 st.session_state.show_bill = False
                 st.session_state.last_bill_details = None
                 st.toast("Order updated!")
-                st.rerun() # Rerun to display the updated current order immediately
-            else:
-                st.info("No changes detected in the order.")
+                st.rerun()
 
-    st.markdown("---")
-    st.subheader("Your Current Order")
-
-    if st.session_state.current_order:
-        subtotal = 0
-        order_df_data = [] # For st.dataframe
-        for item, qty in st.session_state.current_order.items():
-            price_per_item = all_menu_items.get(item, 0) # Use global all_menu_items
-            item_total = price_per_item * qty
-            order_df_data.append({"Item": item, "Quantity": qty, "Price (₹)": f"₹{price_per_item:.2f}", "Total (₹)": f"₹{item_total:.2f}"})
-            subtotal += item_total
-        
-        st.dataframe(order_df_data, use_container_width=True, hide_index=True)
-
-        if st.button("Clear Order", help="Removes all items from your current order."):
-            st.session_state.current_order = {}
-            st.info("Your order has been cleared.")
-            st.rerun()
-            
         st.markdown("---")
-        
-        if st.button("Generate Bill", type="primary"):
-            if not st.session_state.current_order: 
-                st.warning("Your cart is empty. Please add items to generate a bill.")
-            else:
-                generate_and_save_bill(
-                    st.session_state.customer_name, 
-                    st.session_state.customer_phone, 
-                    st.session_state.current_order, # Passing dictionary now
-                    all_menu_items, # Pass global all_menu_items
-                    session 
-                )
-    else:
-        st.info("Your order is empty. Please select items from the menu.")
+        st.subheader("📝 Your Current Order")
+
+        if st.session_state.current_order:
+            subtotal = 0
+            order_df_data = [] # For st.dataframe
+            for item, qty in st.session_state.current_order.items():
+                price_per_item = all_menu_items.get(item, 0) # Use global all_menu_items
+                item_total = price_per_item * qty
+                order_df_data.append({"Item": item, "Quantity": qty, "Price (₹)": f"₹{price_per_item:.2f}", "Total (₹)": f"₹{item_total:.2f}"})
+                subtotal += item_total
+            
+            st.dataframe(order_df_data, use_container_width=True, hide_index=True)
+
+            if st.button("Clear Order", help="Removes all items from your current order."):
+                st.session_state.current_order = {}
+                st.info("Your order has been cleared.")
+                st.rerun()
+                
+            st.markdown("---")
+            
+            if st.button("Generate Bill", type="primary"):
+                if not st.session_state.current_order: 
+                    st.warning("Your cart is empty. Please add items to generate a bill.")
+                else:
+                    generate_and_save_bill(
+                        st.session_state.customer_name, 
+                        st.session_state.customer_phone, 
+                        st.session_state.current_order, # Passing dictionary now
+                        all_menu_items, # Pass global all_menu_items
+                        session 
+                    )
+        else:
+            st.info("Your order is empty. Please select items from the menu.")
 
 # --- Display the generated bill ---
 if st.session_state.show_bill and st.session_state.last_bill_details:
@@ -442,7 +454,8 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
 # --- Global "Start New Customer Order" Button (always visible if an order is active) ---
 # This button provides an escape hatch to start fresh even if no bill was generated.
 # It only shows if there's an active customer or order, or a bill displayed.
-if not st.session_state.show_bill and st.session_state.wants_to_order and (st.session_state.customer_name or st.session_state.current_order):
+# Adjusting conditions to make sure it doesn't show redundant button if already at start of flow.
+if not st.session_state.show_bill and st.session_state.wants_to_order != False and (st.session_state.customer_name or st.session_state.current_order):
     st.markdown("---") 
     if st.button("Start New Customer Order", key="start_new_customer_global"):
         st.session_state.customer_name = ""
