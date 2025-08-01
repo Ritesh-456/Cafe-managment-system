@@ -191,7 +191,7 @@ def generate_pdf_bill(bill_details):
     pdf.cell(0, 5, "We hope to see you again soon!", 0, 1, 'C')
 
     # --- FIX START ---
-    return pdf.output(dest='S') # Removed .encode('latin-1') - It's already bytes due to uni=True
+    return pdf.output(dest='b') # Changed dest to 'b' (for bytes)
     # --- FIX END ---
 
 
