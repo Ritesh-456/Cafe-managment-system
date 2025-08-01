@@ -169,9 +169,9 @@ def generate_pdf_bill(bill_details):
         c.drawRightString(x_qty_right, y_pos, "Qty")
         c.drawRightString(x_price_right, y_pos, "Price (Rs)")
         c.drawRightString(x_total_right, y_pos, "Total (Rs)")
-        y_pos -= GAP_SMALL
+        y_pos -= GAP_SMALL + 2  # Small buffer before line
         c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
-        y_pos -= GAP_SMALL
+        y_pos -= GAP_SMALL + 2  # Space after line
 
         # Items list
         c.setFont("Helvetica", 9)
@@ -182,9 +182,9 @@ def generate_pdf_bill(bill_details):
             c.drawRightString(x_total_right, y_pos, f"{item['total_item_price']:.2f}")
             y_pos -= LINE_SPACING_REGULAR
 
-        y_pos -= GAP_SMALL
+        y_pos -= GAP_SMALL + 2  # Buffer before bottom line
         c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
-        y_pos -= GAP_SMALL
+        y_pos -= GAP_SMALL + 2  # Space after bottom line
 
         # === Summary Section ===
         x_label = x_total_right - 2.0 * inch
