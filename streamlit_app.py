@@ -185,7 +185,7 @@ def generate_pdf_bill(bill_details):
 
                 # === Summary Section ===
         x_label = x_total_right - 2.2 * inch  # moved a bit more to the left
-        c.setFont("Courier-Bold", 9.5)  # monospaced font for better alignment
+        c.setFont("Helvetica", 9.5)  # monospaced font for better alignment
 
         summary_items = [
             ("Subtotal (before discount):", f"Rs {bill_details['initial_subtotal']:.2f}"),
@@ -209,7 +209,7 @@ def generate_pdf_bill(bill_details):
         y_pos -= GAP_MEDIUM
 
         # === Total Payable ===
-        c.setFont("Courier-Bold", 11.5)
+        c.setFont("Helvetica", 11.5)
         c.drawRightString(x_label, y_pos, "TOTAL PAYABLE:")
         c.drawRightString(x_total_right, y_pos, f"Rs {bill_details['total']:.2f}/-")
         y_pos -= GAP_LARGE
