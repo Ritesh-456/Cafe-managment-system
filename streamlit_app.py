@@ -108,20 +108,23 @@ def generate_pdf_bill(bill_details):
     # --- IMPORTANT: Fix for PDF generation and Unicode characters (like ₹) ---
     # You MUST have 'DejaVuSans.ttf', 'DejaVuSans-Bold.ttf', AND 'DejaVuSans-Oblique.ttf'
     # in a subfolder named 'fonts/' within the same directory as your Streamlit app script.
-    # If these files are missing, fpdf will raise a RuntimeError and fall back to Arial,
-    # which might not display all characters correctly.
+    # If these files are missing, fpdf will raise a RuntimeError.
+    # We now RETURN None immediately if fonts fail to load.
     try:
         # Load regular, bold, and italic versions of DejaVuSans
         pdf.add_font('DejaVuSans', '', 'fonts/DejaVuSans.ttf', uni=True)
         pdf.add_font('DejaVuSans', 'B', 'fonts/DejaVuSans-Bold.ttf', uni=True)
         pdf.add_font('DejaVuSans', 'I', 'fonts/DejaVuSans-Oblique.ttf', uni=True) # Ensure this file is present
-
         pdf.set_font("DejaVuSans", size=10) # Set to DejaVuSans if successfully loaded
     except RuntimeError as e:
-        # If font files are missing, fallback to default Arial font
+        # If font files are missing, print an error and DO NOT proceed with PDF generation.
         st.error(f"PDF font error: {e}. Please ensure 'DejaVuSans.ttf', 'DejaVuSans-Bold.ttf', AND 'DejaVuSans-Oblique.ttf' are in the 'fonts/' subfolder for full Unicode (e.g., ₹) support.")
-        st.warning("Using default PDF font (Arial), which might not display all characters correctly.")
-        pdf.set_font("Arial", size=10) # Fallback to default Arial
+        st.warning("PDF generation aborted due to font loading issue. Using default PDF font (Arial) might still have display issues if PDF is generated later.")
+        return None # Explicitly return None here to stop generation
+    except Exception as e:
+        # Catch any other unexpected errors during font setup
+        st.error(f"An unexpected error occurred during PDF font setup: {e}")
+        return None
 
     try:
         # Cafe Header
@@ -196,7 +199,7 @@ def generate_pdf_bill(bill_details):
         return pdf.output(dest='b')
 
     except Exception as e:
-        # Catch any error during PDF content generation or output
+        # Catch any other error during PDF content generation or output
         st.error(f"An error occurred while generating the PDF bill content: {e}")
         return None # Explicitly return None if an error occurs
 
@@ -411,7 +414,7 @@ else: # Cafe is OPEN
                 type="secondary"
             )
         else:
-            st.warning("Could not generate PDF for download. Please check the error messages above.")
+            st.warning("Could not generate PDF for download. Please check the error messages above for details.")
         st.markdown("---")
 
         col_new_order1, col_new_order2 = st.columns(2)
