@@ -106,7 +106,8 @@ def generate_pdf_bill(bill_details):
     pdf.add_page()
     
     # --- ADD FONT FOR UNICODE SUPPORT ---
-    # You MUST have 'DejaVuSans.ttf' AND 'DejaVuSans-Bold.ttf' in the 'fonts/' subfolder
+    # You MUST have 'DejaVuSans.ttf', 'DejaVuSans-Bold.ttf', and 'DejaVuSans-Oblique.ttf'
+    # in the 'fonts/' subfolder
     try:
         # Load regular and bold versions of DejaVuSans
         pdf.add_font('DejaVuSans', '', 'fonts/DejaVuSans.ttf', uni=True)
@@ -191,7 +192,7 @@ def generate_pdf_bill(bill_details):
     pdf.cell(0, 5, "We hope to see you again soon!", 0, 1, 'C')
 
     # --- FIX START ---
-    return pdf.output(dest='S') # Removed .encode('latin-1')
+    return pdf.output(dest='S').encode('latin-1') # Re-added .encode('latin-1')
     # --- FIX END ---
 
 
@@ -428,7 +429,7 @@ else: # Cafe is OPEN
         # Scenario: Cafe Open, Identity NOT Confirmed - Show Form
         with st.form("customer_form"):
             name_input = st.text_input("Enter your Name:", value=st.session_state.customer_name, key="customer_name_input_form").strip().capitalize()
-            phone_input = st.text_input("Enter your Phone Number:", value=st.session_state.customer_phone, key="customer_phone_input_form").strip()
+            phone_input = st.text_input("Enter your Phone Number:", value=st.session_state.customer_phone, key="customer_phone_input_form").strip().capitalize() # Keep phone as is
             
             submitted_identity = st.form_submit_button("Confirm Identity")
 
