@@ -105,15 +105,14 @@ def generate_pdf_bill(bill_details):
     pdf = FPDF()
     pdf.add_page()
     
-    # --- MODIFIED: ADD FONT FOR UNICODE SUPPORT WITH CORRECT PATH ---
-    # You MUST have 'DejaVuSans.ttf', 'DejaVuSans-Bold.ttf', and 'DejaVuSans-Oblique.ttf'
-    # in the 'fonts/' subfolder
+    # --- ADD FONT FOR UNICODE SUPPORT ---
+    # You MUST have 'DejaVuSans.ttf' AND 'DejaVuSans-Bold.ttf' in the 'fonts/' subfolder
     try:
-        # Load regular, bold, and italic (oblique) versions of DejaVuSans
+        # Load regular and bold versions of DejaVuSans
         pdf.add_font('DejaVuSans', '', 'fonts/DejaVuSans.ttf', uni=True)
         pdf.add_font('DejaVuSans', 'B', 'fonts/DejaVuSans-Bold.ttf', uni=True)
         # ADDED THIS LINE FOR ITALIC SUPPORT:
-        pdf.add_font('DejaVuSans', 'I', 'fonts/DejaVuSans-Oblique.ttf', uni=True) 
+        pdf.add_font('DejaVuSans', 'I', 'fonts/DejaVuSans-Oblique.ttf', uni=True) # Ensure this file is present
         
         pdf.set_font("DejaVuSans", size=10) # Set to DejaVuSans if successfully loaded
     except RuntimeError as e:
@@ -121,7 +120,7 @@ def generate_pdf_bill(bill_details):
         st.error(f"PDF font error: {e}. Please ensure 'DejaVuSans.ttf', 'DejaVuSans-Bold.ttf', AND 'DejaVuSans-Oblique.ttf' are in the 'fonts/' subfolder for full Unicode (e.g., ₹) support.")
         st.warning("Using default PDF font (Arial), which might not display all characters correctly.")
         pdf.set_font("Arial", size=10) # Fallback to default Arial
-    # ----------------------------------------------------------------
+    # -----------------------------------
 
     # Cafe Header
     pdf.set_font("DejaVuSans", "B", 16) # Use DejaVuSans
@@ -191,7 +190,9 @@ def generate_pdf_bill(bill_details):
     pdf.cell(0, 5, "Thank you for visiting Bhakti's Cafe!", 0, 1, 'C')
     pdf.cell(0, 5, "We hope to see you again soon!", 0, 1, 'C')
 
-    return pdf.output(dest='S').encode('latin-1')
+    # --- FIX START ---
+    return pdf.output(dest='S') # Removed .encode('latin-1')
+    # --- FIX END ---
 
 
 def generate_and_save_bill(customer_name, customer_phone, current_order, all_menu_items_context, session):
