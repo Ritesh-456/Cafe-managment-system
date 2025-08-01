@@ -169,9 +169,9 @@ def generate_pdf_bill(bill_details):
         c.drawRightString(x_qty_right, y_pos, "Qty")
         c.drawRightString(x_price_right, y_pos, "Price (Rs)")
         c.drawRightString(x_total_right, y_pos, "Total (Rs)")
-        y_pos -= GAP_SMALL + 2  # Small buffer before line
+        y_pos -= GAP_SMALL + 3  # Added space before line
         c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
-        y_pos -= GAP_SMALL + 2  # Space after line
+        y_pos -= GAP_SMALL + 2  # Added space after line
 
         # Items list
         c.setFont("Helvetica", 9)
@@ -182,9 +182,9 @@ def generate_pdf_bill(bill_details):
             c.drawRightString(x_total_right, y_pos, f"{item['total_item_price']:.2f}")
             y_pos -= LINE_SPACING_REGULAR
 
-        y_pos -= GAP_SMALL + 2  # Buffer before bottom line
+        y_pos -= GAP_SMALL + 3  # Extra spacing before bottom line
         c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
-        y_pos -= GAP_SMALL + 2  # Space after bottom line
+        y_pos -= GAP_SMALL + 2  # Space after line
 
         # === Summary Section ===
         x_label = x_total_right - 2.0 * inch
@@ -224,6 +224,13 @@ def generate_pdf_bill(bill_details):
         c.drawCentredString(width / 2.0, y_pos, "Thank you for visiting Bhakti's Cafe!")
         y_pos -= LINE_SPACING_REGULAR
         c.drawCentredString(width / 2.0, y_pos, "We hope to see you again soon!")
+        y_pos -= LINE_SPACING_REGULAR
+
+        # === Website and Store Contact ===
+        c.setFont("Helvetica", 8)
+        c.drawCentredString(width / 2.0, y_pos, "For more checkouts: https://bhaktis-cafe.streamlit.app/")
+        y_pos -= LINE_SPACING_REGULAR
+        c.drawCentredString(width / 2.0, y_pos, "Store Contact: +91-894613066 (Bhakti's Cafe, Marathahalli, Bangalore)")
 
         # === Finalize PDF ===
         c.showPage()
