@@ -135,7 +135,7 @@ def generate_pdf_bill(bill_details):
 
         # === Bill Details ===
         c.setFont("Helvetica-Bold", 10)
-        c.drawString(LEFT_RIGHT_MARGIN, y_pos, "BILL DETAILS")
+        c.drawString(LEFT_RIGHT_MARGIN, y_pos, "BILL DETAILS:")
         y_pos -= GAP_MEDIUM
 
         c.setFont("Helvetica", 9)
@@ -172,7 +172,7 @@ def generate_pdf_bill(bill_details):
 
         # === Items List ===
         c.setFont("Helvetica", 9)
-        for item in bill_details['items_ordered']:
+        for item in bill_details['items_ordered:']:
             c.drawString(x_item_left, y_pos, item['item'])
             c.drawRightString(x_qty_right, y_pos, str(item['quantity']))
             c.drawRightString(x_price_right, y_pos, f"{item['price_per_unit']:.2f}")
