@@ -2,11 +2,15 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
+import pytz # Import the pytz library
 
 # --- Configuration & File Paths ---
 CAFE_NAME = "Bhakti's Cafe.com"
 CUSTOMER_DATA_FILE = "customer_data.json"
 CONFIG_FILE = "config.json" # Centralized config file for cafe hours
+
+# Define the timezone for India (Asia/Kolkata)
+kolkata_timezone = pytz.timezone('Asia/Kolkata')
 
 # Initialize menu and all_menu_items as empty dictionaries at the global scope.
 # They will be populated later if the cafe is open and menu file is loaded successfully.
@@ -66,7 +70,8 @@ def get_cafe_status(cafe_hours):
     if not cafe_hours:
         return "Error", None, None, False, "Cafe configuration could not be loaded."
 
-    now = datetime.now()
+    # Get current time in Asia/Kolkata timezone
+    now = datetime.now(kolkata_timezone)
     current_time = now.time()
     
     if cafe_hours["day_start"] <= current_time <= cafe_hours["day_end"]:
@@ -86,7 +91,7 @@ def get_cafe_status(cafe_hours):
             # Before morning opening
             closed_message = f"Cafe is not yet open. We open at {cafe_hours['day_start'].strftime('%I:%M %p')} today!"
         else:
-            closed_message = "Cafe is closed. Please check our working hours: Day ({cafe_hours['day_start'].strftime('%I:%M %p')} - {cafe_hours['day_end'].strftime('%I:%M %p')}), Evening ({cafe_hours['evening_start'].strftime('%I:%M %p')} - {cafe_hours['evening_end'].strftime('%I:%M %p')})." # Fallback
+            closed_message = f"Cafe is closed. Please check our working hours: Day ({cafe_hours['day_start'].strftime('%I:%M %p')} - {cafe_hours['day_end'].strftime('%I:%M %p')}), Evening ({cafe_hours['evening_start'].strftime('%I:%M %p')} - {cafe_hours['evening_end'].strftime('%I:%M %p')})." # Fallback
 
         return "Closed", None, now, False, closed_message
 
@@ -117,7 +122,8 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
     gst = round(subtotal_after_discount * 0.18, 2)
     total = round(subtotal_after_discount + gst, 2)
     
-    bill_moment_datetime = datetime.now() # Capture exact time of bill generation
+    # Capture exact time of bill generation in Asia/Kolkata timezone
+    bill_moment_datetime = datetime.now(kolkata_timezone)
     bill_gen_time = bill_moment_datetime.strftime("%H:%M:%S")
     bill_date = bill_moment_datetime.strftime("%d/%m/%Y")
     bill_day = bill_moment_datetime.strftime("%A")
@@ -189,8 +195,8 @@ st.title(f"☕ Welcome to {CAFE_NAME}")
 # Show current time on dashboard
 st.subheader("Current Time & Date")
 
-# Get current datetime for Date, Day, and Time metrics (updates on each rerun)
-current_datetime_for_dashboard = datetime.now() 
+# Get current datetime for Date, Day, and Time metrics (updates on each rerun) in Kolkata timezone
+current_datetime_for_dashboard = datetime.now(kolkata_timezone) 
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -287,7 +293,7 @@ if not st.session_state.customer_name or not st.session_state.customer_phone:
                 else:
                     st.success(f"👋 Hello {name_input}, nice to meet you!")
                 
-                # After confirming identity, user should see the menu and decide to order
+                # Now ask if they want to order
                 st.session_state.wants_to_order = None # Set to None to indicate decision pending
                 st.rerun() # Rerun to show the menu and order prompt
             else:
@@ -330,7 +336,7 @@ else: # Identity IS Confirmed
         # Scenario: Cafe Open, Identity Confirmed, WANTS to order - Show Order Form
         st.subheader("Time to select your delicious items!")
 
-        # Display Menu and Order Selection
+        # Display Menu and Order Selection (this is the interactive part)
         st.markdown("---")
         st.subheader("Menu Items") # This repeats a bit, consider if you want this header again or just rely on above
 
@@ -361,49 +367,49 @@ else: # Identity IS Confirmed
                         elif item_name in st.session_state.current_order and new_qty == 0:
                             del st.session_state.current_order[item_name]
                             order_changed_in_form = True
-                    col_idx = (col_idx + 1) % 3
+                col_idx = (col_idx + 1) % 3
 
-            submit_order_button = st.form_submit_button("Update Order")
-            if submit_order_button and order_changed_in_form:
-                st.session_state.show_bill = False
-                st.session_state.last_bill_details = None
-                st.toast("Order updated!")
-                st.rerun()
+        submit_order_button = st.form_submit_button("Update Order")
+        if submit_order_button and order_changed_in_form:
+            st.session_state.show_bill = False
+            st.session_state.last_bill_details = None
+            st.toast("Order updated!")
+            st.rerun()
 
+    st.markdown("---")
+    st.subheader("📝 Your Current Order")
+
+    if st.session_state.current_order:
+        subtotal = 0
+        order_df_data = [] # For st.dataframe
+        for item, qty in st.session_state.current_order.items():
+            price_per_item = all_menu_items.get(item, 0) # Use global all_menu_items
+            item_total = price_per_item * qty
+            order_df_data.append({"Item": item, "Quantity": qty, "Price (₹)": f"₹{price_per_item:.2f}", "Total (₹)": f"₹{item_total:.2f}"})
+            subtotal += item_total
+        
+        st.dataframe(order_df_data, use_container_width=True, hide_index=True)
+
+        if st.button("Clear Order", help="Removes all items from your current order."):
+            st.session_state.current_order = {}
+            st.info("Your order has been cleared.")
+            st.rerun()
+            
         st.markdown("---")
-        st.subheader("📝 Your Current Order")
-
-        if st.session_state.current_order:
-            subtotal = 0
-            order_df_data = [] # For st.dataframe
-            for item, qty in st.session_state.current_order.items():
-                price_per_item = all_menu_items.get(item, 0) # Use global all_menu_items
-                item_total = price_per_item * qty
-                order_df_data.append({"Item": item, "Quantity": qty, "Price (₹)": f"₹{price_per_item:.2f}", "Total (₹)": f"₹{item_total:.2f}"})
-                subtotal += item_total
-            
-            st.dataframe(order_df_data, use_container_width=True, hide_index=True)
-
-            if st.button("Clear Order", help="Removes all items from your current order."):
-                st.session_state.current_order = {}
-                st.info("Your order has been cleared.")
-                st.rerun()
-                
-            st.markdown("---")
-            
-            if st.button("Generate Bill", type="primary"):
-                if not st.session_state.current_order: 
-                    st.warning("Your cart is empty. Please add items to generate a bill.")
-                else:
-                    generate_and_save_bill(
-                        st.session_state.customer_name, 
-                        st.session_state.customer_phone, 
-                        st.session_state.current_order, # Passing dictionary now
-                        all_menu_items, # Pass global all_menu_items
-                        session 
-                    )
-        else:
-            st.info("Your order is empty. Please select items from the menu.")
+        
+        if st.button("Generate Bill", type="primary"):
+            if not st.session_state.current_order: 
+                st.warning("Your cart is empty. Please add items to generate a bill.")
+            else:
+                generate_and_save_bill(
+                    st.session_state.customer_name, 
+                    st.session_state.customer_phone, 
+                    st.session_state.current_order, # Passing dictionary now
+                    all_menu_items, # Pass global all_menu_items
+                    session 
+                )
+    else:
+        st.info("Your order is empty. Please select items from the menu.")
 
 # --- Display the generated bill ---
 if st.session_state.show_bill and st.session_state.last_bill_details:
@@ -454,7 +460,6 @@ if st.session_state.show_bill and st.session_state.last_bill_details:
 # --- Global "Start New Customer Order" Button (always visible if an order is active) ---
 # This button provides an escape hatch to start fresh even if no bill was generated.
 # It only shows if there's an active customer or order, or a bill displayed.
-# Adjusting conditions to make sure it doesn't show redundant button if already at start of flow.
 if not st.session_state.show_bill and st.session_state.wants_to_order != False and (st.session_state.customer_name or st.session_state.current_order):
     st.markdown("---") 
     if st.button("Start New Customer Order", key="start_new_customer_global"):
