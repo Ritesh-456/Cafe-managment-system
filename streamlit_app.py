@@ -2,9 +2,6 @@ import streamlit as st
 import json
 from datetime import datetime
 import os
-import pytz
-
-ist = pytz.timezone("Asia/Kolkata")
 
 # --- Configuration & File Paths ---
 CAFE_NAME = "Bhakti's Cafe.com"
