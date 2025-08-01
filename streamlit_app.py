@@ -74,7 +74,7 @@ def get_cafe_status(cafe_hours):
     # Get current time in Asia/Kolkata timezone
     now = datetime.now(kolkata_timezone)
     current_time = now.time()
-    
+
     if cafe_hours["day_start"] <= current_time <= cafe_hours["day_end"]:
         return "Day", "day.json", now, True, None
     elif cafe_hours["evening_start"] <= current_time <= cafe_hours["evening_end"]:
@@ -104,23 +104,25 @@ def generate_pdf_bill(bill_details):
     """Generates a PDF bill from bill details."""
     pdf = FPDF()
     pdf.add_page()
-    
-    # --- ADD FONT FOR UNICODE SUPPORT ---
-    # You MUST have 'DejaVuSans.ttf' AND 'DejaVuSans-Bold.ttf' in the 'fonts/' subfolder
+
+    # --- IMPORTANT: Fix for PDF generation and Unicode characters (like ₹) ---
+    # You MUST have 'DejaVuSans.ttf', 'DejaVuSans-Bold.ttf', AND 'DejaVuSans-Oblique.ttf'
+    # in a subfolder named 'fonts/' within the same directory as your Streamlit app script.
+    # If these files are missing, fpdf will raise a RuntimeError and fall back to Arial,
+    # which might not display all characters correctly.
     try:
-        # Load regular and bold versions of DejaVuSans
+        # Load regular, bold, and italic versions of DejaVuSans
         pdf.add_font('DejaVuSans', '', 'fonts/DejaVuSans.ttf', uni=True)
         pdf.add_font('DejaVuSans', 'B', 'fonts/DejaVuSans-Bold.ttf', uni=True)
-        # ADDED THIS LINE FOR ITALIC SUPPORT:
         pdf.add_font('DejaVuSans', 'I', 'fonts/DejaVuSans-Oblique.ttf', uni=True) # Ensure this file is present
-        
+
         pdf.set_font("DejaVuSans", size=10) # Set to DejaVuSans if successfully loaded
     except RuntimeError as e:
-        # If font files are missing, fallback to Arial but expect encoding issues
+        # If font files are missing, fallback to default Arial font
         st.error(f"PDF font error: {e}. Please ensure 'DejaVuSans.ttf', 'DejaVuSans-Bold.ttf', AND 'DejaVuSans-Oblique.ttf' are in the 'fonts/' subfolder for full Unicode (e.g., ₹) support.")
         st.warning("Using default PDF font (Arial), which might not display all characters correctly.")
         pdf.set_font("Arial", size=10) # Fallback to default Arial
-    # -----------------------------------
+    # -------------------------------------------------------------------------
 
     # Cafe Header
     pdf.set_font("DejaVuSans", "B", 16) # Use DejaVuSans
@@ -166,7 +168,7 @@ def generate_pdf_bill(bill_details):
     pdf.set_font("DejaVuSans", "B", 10) # Use DejaVuSans
     pdf.cell(150, 7, "Subtotal (before discount):", 0, 0, 'R')
     pdf.cell(30, 7, f"Rs{bill_details['initial_subtotal']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
-    
+
     pdf.cell(150, 5, f"Total Items: {bill_details['total_items_count']}", 0, 1, 'R')
 
     if bill_details['discount_percentage'] > 0:
@@ -174,10 +176,10 @@ def generate_pdf_bill(bill_details):
         pdf.cell(30, 7, f"-Rs{bill_details['discount_amount']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
         pdf.cell(150, 7, "Subtotal (after discount):", 0, 0, 'R')
         pdf.cell(30, 7, f"Rs{bill_details['subtotal_after_discount']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
-    
+
     pdf.cell(150, 7, "GST (18%):", 0, 0, 'R')
     pdf.cell(30, 7, f"Rs{bill_details['gst']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
-    
+
     pdf.set_font("DejaVuSans", "B", 12) # Use DejaVuSans
     pdf.cell(150, 10, "TOTAL PAYABLE:", 0, 0, 'R')
     pdf.cell(30, 10, f"Rs{bill_details['total']:.2f}/-", 0, 1, 'R') # Changed ₹ to Rs
@@ -190,15 +192,13 @@ def generate_pdf_bill(bill_details):
     pdf.cell(0, 5, "Thank you for visiting Bhakti's Cafe!", 0, 1, 'C')
     pdf.cell(0, 5, "We hope to see you again soon!", 0, 1, 'C')
 
-    # --- FIX START ---
     return pdf.output(dest='b') # Changed dest to 'b' (for bytes)
-    # --- FIX END ---
 
 
 def generate_and_save_bill(customer_name, customer_phone, current_order, all_menu_items_context, session):
     """Calculates bill, applies discounts, saves customer data, and updates session state for display."""
     initial_subtotal = sum(all_menu_items_context.get(item, 0) * qty for item, qty in current_order.items())
-    
+
     total_items_count = sum(current_order.values())
     discount_percentage = 0.0
 
@@ -214,7 +214,7 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
 
     gst = round(subtotal_after_discount * 0.18, 2)
     total = round(subtotal_after_discount + gst, 2)
-    
+
     # Capture exact time of bill generation in Asia/Kolkata timezone
     bill_moment_datetime = datetime.now(kolkata_timezone)
     bill_gen_time = bill_moment_datetime.strftime("%H:%M:%S")
@@ -229,7 +229,7 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
         items_ordered_for_display.append(
             {"item": item, "quantity": qty, "price_per_unit": price_per_item, "total_item_price": item_total}
         )
-    
+
     # Prepare data for original customer_data.json structure (repeated items for quantity)
     ordered_items_list_for_save = []
     ordered_prices_list_for_save = []
@@ -241,7 +241,7 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
 
     st.session_state.last_bill_details = {
         "customer_name": customer_name,
-        "phone_number": customer_phone,
+        "phone_number": phone_number,
         "visit_session": session,
         "date": bill_date,
         "day": bill_day,
@@ -276,7 +276,7 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
     st.session_state.show_bill = True
     st.session_state.current_order = {} # Clear current order inputs after bill
     # Reset wants_to_order after successful bill generation to guide flow
-    st.session_state.wants_to_order = False 
+    st.session_state.wants_to_order = False
     st.rerun() # Trigger a rerun to display the bill and reset order inputs
 
 
@@ -289,7 +289,7 @@ st.title(f"☕ Welcome to {CAFE_NAME}")
 st.subheader("Current Time & Date")
 
 # Get current datetime for Date, Day, and Time metrics (updates on each rerun) in Kolkata timezone
-current_datetime_for_dashboard = datetime.now(kolkata_timezone) 
+current_datetime_for_dashboard = datetime.now(kolkata_timezone)
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -356,11 +356,11 @@ else: # Cafe is OPEN
 
     # Assign the active session's menu to the global 'menu' variable
     # This block ensures 'menu' and 'all_menu_items' are populated ONLY when cafe is open
-    menu = load_menu(menu_file_name) 
+    menu = load_menu(menu_file_name)
     if not menu:
         st.error(f"Menu for {session} session ('{menu_file_name}') not found or is empty/corrupted. Please check menu files.")
         st.stop()
-    
+
     # Populate global all_menu_items after 'menu' is successfully loaded
     for category, items in menu.items():
         all_menu_items.update(items)
@@ -371,7 +371,7 @@ else: # Cafe is OPEN
         bill = st.session_state.last_bill_details
         st.markdown("### 🧾 ========== BILL ==========")
         st.write(f"**Customer Name:** {bill['customer_name']}")
-        st.write(f"**Phone Number:** {bill['phone_number']}") 
+        st.write(f"**Phone Number:** {bill['phone_number']}")
         st.write(f"**Visit Session:** {bill['visit_session']}")
         st.write(f"**Date:** {bill['date']}")
         st.write(f"**Day:** {bill['day']}")
@@ -380,14 +380,14 @@ else: # Cafe is OPEN
         st.write("**Items Ordered:**")
         for item_detail in bill['items_ordered']:
             st.write(f"- {item_detail['item']} (x{item_detail['quantity']}): ₹{item_detail['total_item_price']:.2f}")
-        
+
         st.markdown("---")
         st.write(f"**Subtotal (before discount):** ₹{bill['initial_subtotal']:.2f}")
         st.write(f"**Total Items:** {bill['total_items_count']}")
         if bill['discount_percentage'] > 0:
             st.write(f"**Discount Applied:** {bill['discount_percentage']:.0f}% (₹{bill['discount_amount']:.2f})")
             st.write(f"**Subtotal (after discount):** ₹{bill['subtotal_after_discount']:.2f}")
-        
+
         st.write(f"**GST (18%):** ₹{bill['gst']:.2f}")
         st.markdown(f"## **Total Payable:** ₹{bill['total']:.2f}/-")
         st.markdown("=============================")
@@ -417,7 +417,7 @@ else: # Cafe is OPEN
                 st.session_state.customer_name = ""
                 st.session_state.customer_phone = ""
                 st.session_state.current_order = {}
-                st.session_state.show_bill = False 
+                st.session_state.show_bill = False
                 st.session_state.last_bill_details = None
                 st.session_state.wants_to_order = False
                 st.rerun()
@@ -429,7 +429,7 @@ else: # Cafe is OPEN
         with st.form("customer_form"):
             name_input = st.text_input("Enter your Name:", value=st.session_state.customer_name, key="customer_name_input_form").strip().capitalize()
             phone_input = st.text_input("Enter your Phone Number:", value=st.session_state.customer_phone, key="customer_phone_input_form").strip()
-            
+
             submitted_identity = st.form_submit_button("Confirm Identity")
 
             if submitted_identity:
@@ -438,14 +438,14 @@ else: # Cafe is OPEN
                     st.session_state.customer_phone = phone_input
 
                     customer_data = load_json_data(CUSTOMER_DATA_FILE) or {}
-                    
+
                     if name_input in customer_data:
                         st.info(f'👋 Hello, {name_input} thank you for revisiting!')
                     else:
                         st.success(f"👋 Hello {name_input}, nice to meet you!")
-                    
+
                     st.session_state.wants_to_order = None # Set to None to indicate decision pending
-                    st.rerun() 
+                    st.rerun()
                 else:
                     st.warning("Please enter both your name and phone number.")
 
@@ -490,23 +490,23 @@ else: # Cafe is OPEN
 
             with st.form(key="order_selection_form"):
                 st.write("Select the items you'd like to order and specify quantities.")
-                
-                order_changed_in_form = False 
-                
+
+                order_changed_in_form = False
+
                 for category, items in menu.items():
                     st.markdown(f"**__{category}__**")
-                    cols = st.columns(3) 
+                    cols = st.columns(3)
                     col_idx = 0
                     for item_name, price in items.items():
                         with cols[col_idx]:
-                            st.markdown(f"**{item_name}** (₹{price})") 
+                            st.markdown(f"**{item_name}** (₹{price})")
                             current_qty = st.session_state.current_order.get(item_name, 0)
-                            new_qty = st.number_input(f"qty_{item_name}", 
-                                                      min_value=0, 
-                                                      value=current_qty, 
-                                                      step=1, 
-                                                      key=f"qty_input_{item_name}", 
-                                                      label_visibility="collapsed") 
+                            new_qty = st.number_input(f"qty_{item_name}",
+                                                      min_value=0,
+                                                      value=current_qty,
+                                                      step=1,
+                                                      key=f"qty_input_{item_name}",
+                                                      label_visibility="collapsed")
                             if new_qty > 0:
                                 if st.session_state.current_order.get(item_name) != new_qty:
                                     st.session_state.current_order[item_name] = new_qty
@@ -528,46 +528,46 @@ else: # Cafe is OPEN
 
             if st.session_state.current_order:
                 subtotal = 0
-                order_df_data = [] 
+                order_df_data = []
                 for item, qty in st.session_state.current_order.items():
                     price_per_item = all_menu_items.get(item, 0)
                     item_total = price_per_item * qty
                     order_df_data.append({"Item": item, "Quantity": qty, "Price (₹)": f"₹{price_per_item:.2f}", "Total (₹)": f"₹{item_total:.2f}"})
                     subtotal += item_total
-                
+
                 st.dataframe(order_df_data, use_container_width=True, hide_index=True)
 
                 if st.button("Clear Order", help="Removes all items from your current order."):
                     st.session_state.current_order = {}
                     st.info("Your order has been cleared.")
                     st.rerun()
-                    
+
                 st.markdown("---")
-                
+
                 if st.button("Generate Bill", type="primary"):
-                    if not st.session_state.current_order: 
+                    if not st.session_state.current_order:
                         st.warning("Your cart is empty. Please add items to generate a bill.")
                     else:
                         generate_and_save_bill(
-                            st.session_state.customer_name, 
-                            st.session_state.customer_phone, 
-                            st.session_state.current_order, 
-                            all_menu_items, 
-                            session 
+                            st.session_state.customer_name,
+                            st.session_state.customer_phone,
+                            st.session_state.current_order,
+                            all_menu_items,
+                            session
                         )
             else:
                 st.info("Your order is empty. Please select items from the menu.")
 
 # --- Global "Start New Customer Order" Button (always visible if an order is active) ---
 if not st.session_state.show_bill and st.session_state.wants_to_order != False and (st.session_state.customer_name or st.session_state.current_order):
-    st.markdown("---") 
+    st.markdown("---")
     if st.button("Start New Customer Order", key="start_new_customer_global"):
         st.session_state.customer_name = ""
         st.session_state.customer_phone = ""
         st.session_state.current_order = {}
-        st.session_state.show_bill = False 
+        st.session_state.show_bill = False
         st.session_state.last_bill_details = None
-        st.session_state.wants_to_order = False 
+        st.session_state.wants_to_order = False
         st.rerun()
 
 st.markdown("---")
