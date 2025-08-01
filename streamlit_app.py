@@ -209,7 +209,7 @@ def generate_pdf_bill(bill_details):
         y_pos -= GAP_MEDIUM
 
         # === Total Payable ===
-        c.setFont("Helvetica-Bold", 12)
+        c.setFont("Helvetica-Bold", 8)
         c.drawRightString(x_label, y_pos, "TOTAL PAYABLE:")
         c.drawRightString(x_total_right, y_pos, f"Rs{bill_details['total']:.2f}/-")
         y_pos -= GAP_LARGE
