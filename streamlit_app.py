@@ -104,10 +104,6 @@ def generate_pdf_bill(bill_details):
     """Generates a PDF bill from bill details."""
     pdf = FPDF()
     pdf.add_page()
-
-    # --- SIMPLIFIED FONT HANDLING: Using built-in Arial font ---
-    # This completely bypasses the need for 'fonts/' folder and custom .ttf files.
-    # It might not support all Unicode characters (like ₹), but should prevent font-related errors.
     pdf.set_font("Arial", size=10) # Set a reliable default font
 
     try:
