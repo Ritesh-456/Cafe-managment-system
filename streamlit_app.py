@@ -105,39 +105,23 @@ def generate_pdf_bill(bill_details):
     pdf = FPDF()
     pdf.add_page()
 
-    # --- IMPORTANT: Fix for PDF generation and Unicode characters (like ₹) ---
-    # You MUST have 'DejaVuSans.ttf', 'DejaVuSans-Bold.ttf', AND 'DejaVuSans-Oblique.ttf'
-    # in a subfolder named 'fonts/' within the same directory as your Streamlit app script.
-    # If these files are missing, fpdf will raise a RuntimeError.
-    # We now RETURN None immediately if fonts fail to load.
-    try:
-        # Load regular, bold, and italic versions of DejaVuSans
-        pdf.add_font('DejaVuSans', '', 'fonts/DejaVuSans.ttf', uni=True)
-        pdf.add_font('DejaVuSans', 'B', 'fonts/DejaVuSans-Bold.ttf', uni=True)
-        pdf.add_font('DejaVuSans', 'I', 'fonts/DejaVuSans-Oblique.ttf', uni=True) # Ensure this file is present
-        pdf.set_font("DejaVuSans", size=10) # Set to DejaVuSans if successfully loaded
-    except RuntimeError as e:
-        # If font files are missing, print an error and DO NOT proceed with PDF generation.
-        st.error(f"PDF font error: {e}. Please ensure 'DejaVuSans.ttf', 'DejaVuSans-Bold.ttf', AND 'DejaVuSans-Oblique.ttf' are in the 'fonts/' subfolder for full Unicode (e.g., ₹) support.")
-        st.warning("PDF generation aborted due to font loading issue. Using default PDF font (Arial) might still have display issues if PDF is generated later.")
-        return None # Explicitly return None here to stop generation
-    except Exception as e:
-        # Catch any other unexpected errors during font setup
-        st.error(f"An unexpected error occurred during PDF font setup: {e}")
-        return None
+    # --- SIMPLIFIED FONT HANDLING: Using built-in Arial font ---
+    # This completely bypasses the need for 'fonts/' folder and custom .ttf files.
+    # It might not support all Unicode characters (like ₹), but should prevent font-related errors.
+    pdf.set_font("Arial", size=10) # Set a reliable default font
 
     try:
         # Cafe Header
-        pdf.set_font("DejaVuSans", "B", 16) # Use DejaVuSans
+        pdf.set_font("Arial", "B", 16) # Use Arial
         pdf.cell(0, 10, CAFE_NAME, 0, 1, 'C')
-        pdf.set_font("DejaVuSans", "", 8) # Use DejaVuSans
+        pdf.set_font("Arial", "", 8) # Use Arial
         pdf.cell(0, 5, "--- Your Coffee & Delights Destination ---", 0, 1, 'C')
         pdf.ln(5)
 
         # Bill Details
-        pdf.set_font("DejaVuSans", "B", 10) # Use DejaVuSans
+        pdf.set_font("Arial", "B", 10) # Use Arial
         pdf.cell(0, 7, "BILL DETAILS", 0, 1, 'L')
-        pdf.set_font("DejaVuSans", "", 9) # Use DejaVuSans
+        pdf.set_font("Arial", "", 9) # Use Arial
         # Ensure all keys accessed here exist in bill_details
         pdf.cell(0, 5, f"Customer Name: {bill_details['customer_name']}", 0, 1, 'L')
         pdf.cell(0, 5, f"Phone Number: {bill_details['phone_number']}", 0, 1, 'L')
@@ -148,14 +132,14 @@ def generate_pdf_bill(bill_details):
         pdf.ln(5)
 
         # Items Ordered Header
-        pdf.set_font("DejaVuSans", "B", 10) # Use DejaVuSans
+        pdf.set_font("Arial", "B", 10) # Use Arial
         pdf.cell(0, 7, "ITEMS ORDERED", 0, 1, 'L')
-        pdf.set_font("DejaVuSans", "B", 9) # Use DejaVuSans
+        pdf.set_font("Arial", "B", 9) # Use Arial
         pdf.cell(100, 6, "Item", 0, 0, 'L')
         pdf.cell(20, 6, "Qty", 0, 0, 'C')
-        pdf.cell(30, 6, "Price (Rs)", 0, 0, 'R') # Changed ₹ to Rs to avoid potential issues even with font
-        pdf.cell(30, 6, "Total (Rs)", 0, 1, 'R') # Changed ₹ to Rs to avoid potential issues even with font
-        pdf.set_font("DejaVuSans", "", 9) # Use DejaVuSans
+        pdf.cell(30, 6, "Price (Rs)", 0, 0, 'R')
+        pdf.cell(30, 6, "Total (Rs)", 0, 1, 'R')
+        pdf.set_font("Arial", "", 9) # Use Arial
         pdf.line(pdf.get_x(), pdf.get_y(), 200, pdf.get_y()) # Draw a line
 
         # Itemized List
@@ -169,30 +153,30 @@ def generate_pdf_bill(bill_details):
         pdf.ln(2)
 
         # Summary Totals
-        pdf.set_font("DejaVuSans", "B", 10) # Use DejaVuSans
+        pdf.set_font("Arial", "B", 10) # Use Arial
         pdf.cell(150, 7, "Subtotal (before discount):", 0, 0, 'R')
-        pdf.cell(30, 7, f"Rs{bill_details['initial_subtotal']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
+        pdf.cell(30, 7, f"Rs{bill_details['initial_subtotal']:.2f}", 0, 1, 'R')
 
         pdf.cell(150, 5, f"Total Items: {bill_details['total_items_count']}", 0, 1, 'R')
 
         if bill_details['discount_percentage'] > 0:
             pdf.cell(150, 7, f"Discount Applied ({bill_details['discount_percentage']:.0f}%):", 0, 0, 'R')
-            pdf.cell(30, 7, f"-Rs{bill_details['discount_amount']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
+            pdf.cell(30, 7, f"-Rs{bill_details['discount_amount']:.2f}", 0, 1, 'R')
             pdf.cell(150, 7, "Subtotal (after discount):", 0, 0, 'R')
-            pdf.cell(30, 7, f"Rs{bill_details['subtotal_after_discount']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
+            pdf.cell(30, 7, f"Rs{bill_details['subtotal_after_discount']:.2f}", 0, 1, 'R')
 
         pdf.cell(150, 7, "GST (18%):", 0, 0, 'R')
-        pdf.cell(30, 7, f"Rs{bill_details['gst']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
+        pdf.cell(30, 7, f"Rs{bill_details['gst']:.2f}", 0, 1, 'R')
 
-        pdf.set_font("DejaVuSans", "B", 12) # Use DejaVuSans
+        pdf.set_font("Arial", "B", 12) # Use Arial
         pdf.cell(150, 10, "TOTAL PAYABLE:", 0, 0, 'R')
-        pdf.cell(30, 10, f"Rs{bill_details['total']:.2f}/-", 0, 1, 'R') # Changed ₹ to Rs
+        pdf.cell(30, 10, f"Rs{bill_details['total']:.2f}/-", 0, 1, 'R')
         pdf.ln(5)
         pdf.line(pdf.get_x(), pdf.get_y(), 200, pdf.get_y()) # Draw a line
         pdf.ln(5)
 
         # Footer
-        pdf.set_font("DejaVuSans", "I", 9) # This line will now work correctly
+        pdf.set_font("Arial", "I", 9) # Use Arial for italic
         pdf.cell(0, 5, "Thank you for visiting Bhakti's Cafe!", 0, 1, 'C')
         pdf.cell(0, 5, "We hope to see you again soon!", 0, 1, 'C')
 
