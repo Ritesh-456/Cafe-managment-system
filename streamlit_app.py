@@ -171,7 +171,7 @@ def generate_pdf_bill(bill_details):
         y_pos -= GAP_SMALL + 2
 
         # === Items List ===
-        c.setFont("Helvetica", 9)
+        c.setFont("Helvetica-Bold", 9)
         for item in bill_details['items_ordered']:
             c.drawString(x_item_left, y_pos, item['item'])
             c.drawRightString(x_qty_right, y_pos, str(item['quantity']))
