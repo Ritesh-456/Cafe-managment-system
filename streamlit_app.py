@@ -106,15 +106,16 @@ def generate_pdf_bill(bill_details):
     pdf.add_page()
     
     # --- ADD FONT FOR UNICODE SUPPORT ---
-    # You MUST have 'DejaVuSans.ttf' in the same directory as your script
+    # You MUST have 'DejaVuSans.ttf' AND 'DejaVuSans-Bold.ttf' in the same directory as your script
     try:
+        # Load regular and bold versions of DejaVuSans
         pdf.add_font('DejaVuSans', '', 'DejaVuSans.ttf', uni=True)
-        pdf.add_font('DejaVuSans', 'B', 'DejaVuSans-Bold.ttf', uni=True) # If you have a bold version
-        pdf.set_font("DejaVuSans", size=10) # Use DejaVuSans if successfully loaded
+        pdf.add_font('DejaVuSans', 'B', 'DejaVuSans-Bold.ttf', uni=True)
+        pdf.set_font("DejaVuSans", size=10) # Set to DejaVuSans if successfully loaded
     except RuntimeError as e:
         # If font files are missing, fallback to Arial but expect encoding issues
         st.error(f"PDF font error: {e}. Please ensure 'DejaVuSans.ttf' and 'DejaVuSans-Bold.ttf' are in the same directory as this script for full Unicode (e.g., ₹) support.")
-        st.warning("Using default PDF font, which might not display all characters correctly.")
+        st.warning("Using default PDF font (Arial), which might not display all characters correctly.")
         pdf.set_font("Arial", size=10) # Fallback to default Arial
     # -----------------------------------
 
