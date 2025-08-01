@@ -57,7 +57,7 @@ def load_cafe_config():
             st.error(f"Configuration file '{CONFIG_FILE}' is missing required time keys (e.g., 'day_start', 'day_end', 'evening_start', 'evening_end').")
             return None
         except ValueError:
-            st.error(f"Configuration file '{CONFIG_FILE}' contains invalid time formats. Use HH:MM:SS (e.g., '10:00:00').")
+            st.error(f"Configuration file '{CONFIG_FILE}' contains invalid time formats. Use HH:MM:%S (e.g., '10:00:00').")
             return None
     else:
         st.error(f"Configuration file '{CONFIG_FILE}' not found or is empty/corrupted.")
@@ -104,19 +104,29 @@ def generate_pdf_bill(bill_details):
     """Generates a PDF bill from bill details."""
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=10)
+    
+    # --- ADD FONT FOR UNICODE SUPPORT ---
+    # You MUST have 'DejaVuSans.ttf' in the same directory as your script
+    try:
+        pdf.add_font('DejaVuSans', '', 'DejaVuSans.ttf', uni=True)
+        pdf.add_font('DejaVuSans', 'B', 'DejaVuSans-Bold.ttf', uni=True) # If you have a bold version
+    except RuntimeError:
+        # If font files are missing, fallback to Arial but expect encoding issues
+        st.warning("DejaVuSans.ttf not found. Using default font, which might not support all characters (e.g., ₹).")
+        pdf.set_font("Arial", size=10) # Fallback
+    # -----------------------------------
 
     # Cafe Header
-    pdf.set_font("Arial", "B", 16)
+    pdf.set_font("DejaVuSans", "B", 16) # Use DejaVuSans
     pdf.cell(0, 10, CAFE_NAME, 0, 1, 'C')
-    pdf.set_font("Arial", "", 8)
+    pdf.set_font("DejaVuSans", "", 8) # Use DejaVuSans
     pdf.cell(0, 5, "--- Your Coffee & Delights Destination ---", 0, 1, 'C')
     pdf.ln(5)
 
     # Bill Details
-    pdf.set_font("Arial", "B", 10)
+    pdf.set_font("DejaVuSans", "B", 10) # Use DejaVuSans
     pdf.cell(0, 7, "BILL DETAILS", 0, 1, 'L')
-    pdf.set_font("Arial", "", 9)
+    pdf.set_font("DejaVuSans", "", 9) # Use DejaVuSans
     pdf.cell(0, 5, f"Customer Name: {bill_details['customer_name']}", 0, 1, 'L')
     pdf.cell(0, 5, f"Phone Number: {bill_details['phone_number']}", 0, 1, 'L')
     pdf.cell(0, 5, f"Visit Session: {bill_details['visit_session']}", 0, 1, 'L')
@@ -126,14 +136,14 @@ def generate_pdf_bill(bill_details):
     pdf.ln(5)
 
     # Items Ordered Header
-    pdf.set_font("Arial", "B", 10)
+    pdf.set_font("DejaVuSans", "B", 10) # Use DejaVuSans
     pdf.cell(0, 7, "ITEMS ORDERED", 0, 1, 'L')
-    pdf.set_font("Arial", "B", 9)
+    pdf.set_font("DejaVuSans", "B", 9) # Use DejaVuSans
     pdf.cell(100, 6, "Item", 0, 0, 'L')
     pdf.cell(20, 6, "Qty", 0, 0, 'C')
-    pdf.cell(30, 6, "Price (₹)", 0, 0, 'R')
-    pdf.cell(30, 6, "Total (₹)", 0, 1, 'R')
-    pdf.set_font("Arial", "", 9)
+    pdf.cell(30, 6, "Price (Rs)", 0, 0, 'R') # Changed ₹ to Rs to avoid potential issues even with font
+    pdf.cell(30, 6, "Total (Rs)", 0, 1, 'R') # Changed ₹ to Rs to avoid potential issues even with font
+    pdf.set_font("DejaVuSans", "", 9) # Use DejaVuSans
     pdf.line(pdf.get_x(), pdf.get_y(), 200, pdf.get_y()) # Draw a line
 
     # Itemized List
@@ -147,30 +157,30 @@ def generate_pdf_bill(bill_details):
     pdf.ln(2)
 
     # Summary Totals
-    pdf.set_font("Arial", "B", 10)
+    pdf.set_font("DejaVuSans", "B", 10) # Use DejaVuSans
     pdf.cell(150, 7, "Subtotal (before discount):", 0, 0, 'R')
-    pdf.cell(30, 7, f"₹{bill_details['initial_subtotal']:.2f}", 0, 1, 'R')
+    pdf.cell(30, 7, f"Rs{bill_details['initial_subtotal']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
     
     pdf.cell(150, 5, f"Total Items: {bill_details['total_items_count']}", 0, 1, 'R')
 
     if bill_details['discount_percentage'] > 0:
-        pdf.cell(150, 7, f"Discount ({bill_details['discount_percentage']:.0f}%):", 0, 0, 'R')
-        pdf.cell(30, 7, f"-₹{bill_details['discount_amount']:.2f}", 0, 1, 'R')
+        pdf.cell(150, 7, f"Discount Applied ({bill_details['discount_percentage']:.0f}%):", 0, 0, 'R')
+        pdf.cell(30, 7, f"-Rs{bill_details['discount_amount']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
         pdf.cell(150, 7, "Subtotal (after discount):", 0, 0, 'R')
-        pdf.cell(30, 7, f"₹{bill_details['subtotal_after_discount']:.2f}", 0, 1, 'R')
+        pdf.cell(30, 7, f"Rs{bill_details['subtotal_after_discount']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
     
     pdf.cell(150, 7, "GST (18%):", 0, 0, 'R')
-    pdf.cell(30, 7, f"₹{bill_details['gst']:.2f}", 0, 1, 'R')
+    pdf.cell(30, 7, f"Rs{bill_details['gst']:.2f}", 0, 1, 'R') # Changed ₹ to Rs
     
-    pdf.set_font("Arial", "B", 12)
+    pdf.set_font("DejaVuSans", "B", 12) # Use DejaVuSans
     pdf.cell(150, 10, "TOTAL PAYABLE:", 0, 0, 'R')
-    pdf.cell(30, 10, f"₹{bill_details['total']:.2f}/-", 0, 1, 'R')
+    pdf.cell(30, 10, f"Rs{bill_details['total']:.2f}/-", 0, 1, 'R') # Changed ₹ to Rs
     pdf.ln(5)
     pdf.line(pdf.get_x(), pdf.get_y(), 200, pdf.get_y()) # Draw a line
     pdf.ln(5)
 
     # Footer
-    pdf.set_font("Arial", "I", 9)
+    pdf.set_font("DejaVuSans", "I", 9) # Use DejaVuSans
     pdf.cell(0, 5, "Thank you for visiting Bhakti's Cafe!", 0, 1, 'C')
     pdf.cell(0, 5, "We hope to see you again soon!", 0, 1, 'C')
 
@@ -540,7 +550,7 @@ else: # Cafe is OPEN
             else:
                 st.info("Your order is empty. Please select items from the menu.")
 
-# --- Global "Start New Customer Order" Button (for general reset) ---
+# --- Global "Start New Customer Order" Button (always visible if an order is active) ---
 # This button provides an escape hatch to start fresh even if no bill was generated.
 # It only shows if there's an active customer or order, or a bill displayed.
 if not st.session_state.show_bill and st.session_state.wants_to_order != False and (st.session_state.customer_name or st.session_state.current_order):
