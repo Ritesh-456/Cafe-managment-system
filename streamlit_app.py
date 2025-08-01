@@ -183,35 +183,35 @@ def generate_pdf_bill(bill_details):
         c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
         y_pos -= GAP_SMALL + 2
 
-        # === Summary Section ===
-        x_label = x_total_right - 2.0 * inch
-        c.setFont("Helvetica-Bold", 10)
+                # === Summary Section ===
+        x_label = x_total_right - 2.2 * inch  # moved a bit more to the left
+        c.setFont("Courier-Bold", 9.5)  # monospaced font for better alignment
 
         summary_items = [
-            ("Subtotal (before discount):", f"Rs{bill_details['initial_subtotal']:.2f}"),
-            ("Total Items:", str(bill_details["total_items_count"])),
+            ("Subtotal (before discount):", f"Rs {bill_details['initial_subtotal']:.2f}"),
+            ("Total Items:", f"{bill_details['total_items_count']}"),
         ]
 
         if bill_details["discount_percentage"] > 0:
             summary_items.extend([
-                (f"Discount Applied ({bill_details['discount_percentage']:.0f}%):",
-                 f"-Rs{bill_details['discount_amount']:.2f}"),
-                ("Subtotal (after discount):", f"Rs{bill_details['subtotal_after_discount']:.2f}"),
+                (f"Discount Applied ({bill_details['discount_percentage']:.0f}%):", f"-Rs {bill_details['discount_amount']:.2f}"),
+                ("Subtotal (after discount):", f"Rs {bill_details['subtotal_after_discount']:.2f}"),
             ])
 
-        summary_items.append(("GST (18%):", f"Rs{bill_details['gst']:.2f}"))
+        summary_items.append(("GST (18%):", f"Rs {bill_details['gst']:.2f}"))
 
         for label, value in summary_items:
             c.drawRightString(x_label, y_pos, label)
             c.drawRightString(x_total_right, y_pos, value)
-            y_pos -= LINE_SPACING_REGULAR
+            y_pos -= LINE_SPACING_REGULAR + 1  # added slight spacing
+
 
         y_pos -= GAP_MEDIUM
 
         # === Total Payable ===
-        c.setFont("Helvetica-Bold", 8)
+        c.setFont("Courier-Bold", 11.5)
         c.drawRightString(x_label, y_pos, "TOTAL PAYABLE:")
-        c.drawRightString(x_total_right, y_pos, f"Rs{bill_details['total']:.2f}/-")
+        c.drawRightString(x_total_right, y_pos, f"Rs {bill_details['total']:.2f}/-")
         y_pos -= GAP_LARGE
         c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
         y_pos -= GAP_MEDIUM
