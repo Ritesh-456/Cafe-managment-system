@@ -80,7 +80,7 @@ def get_cafe_status(cafe_hours):
     # Get current time in Asia/Kolkata timezone
     now = datetime.now(kolkata_timezone)
     current_time = now.time()
-
+    
     if cafe_hours["day_start"] <= current_time <= cafe_hours["day_end"]:
         return "Day", "day.json", now, True, None
     elif cafe_hours["evening_start"] <= current_time <= cafe_hours["evening_end"]:
@@ -114,120 +114,133 @@ def generate_pdf_bill(bill_details):
     width, height = letter # letter size is 612x792 points
 
     try:
-        # Initial Y position (from top of the page, moving downwards)
-        y_pos = height - 0.75 * inch # Start 0.75 inch from top edge
+        # Constants for margins and spacing
+        LEFT_RIGHT_MARGIN = 1.0 * inch # Standard left/right margin for main content
+        TOP_INITIAL_Y = height - 0.75 * inch # Start position from top
+        LINE_SPACING_REGULAR = 0.15 * inch # Standard vertical space between lines of text
+        GAP_SMALL = 0.1 * inch             # Smaller vertical gap (e.g., within sections)
+        GAP_MEDIUM = 0.25 * inch           # Medium vertical gap (e.g., between minor sections)
+        GAP_LARGE = 0.5 * inch             # Larger vertical gap (e.g., between major sections)
+
+        # Current Y position (starts from top and decreases)
+        y_pos = TOP_INITIAL_Y
 
         # --- Cafe Header ---
         c.setFont("Helvetica-Bold", 16)
         c.drawCentredString(width / 2.0, y_pos, CAFE_NAME)
-        y_pos -= 0.2 * inch
+        y_pos -= LINE_SPACING_REGULAR
         c.setFont("Helvetica", 10)
         c.drawCentredString(width / 2.0, y_pos, "--- Your Coffee & Delights Destination ---")
-        y_pos -= 0.5 * inch
+        y_pos -= GAP_LARGE # Large gap after header
 
         # --- Bill Details ---
         c.setFont("Helvetica-Bold", 10)
-        c.drawString(0.75 * inch, y_pos, "BILL DETAILS")
-        y_pos -= 0.2 * inch
+        c.drawString(LEFT_RIGHT_MARGIN, y_pos, "BILL DETAILS")
+        y_pos -= GAP_MEDIUM # Medium gap after section title
         c.setFont("Helvetica", 9)
-        # Using string interpolation for values
-        c.drawString(0.75 * inch, y_pos, f"Customer Name: {bill_details['customer_name']}")
-        y_pos -= 0.15 * inch
-        c.drawString(0.75 * inch, y_pos, f"Phone Number: {bill_details['phone_number']}")
-        y_pos -= 0.15 * inch
-        c.drawString(0.75 * inch, y_pos, f"Visit Session: {bill_details['visit_session']}")
-        y_pos -= 0.15 * inch
-        c.drawString(0.75 * inch, y_pos, f"Date: {bill_details['date']}")
-        y_pos -= 0.15 * inch
-        c.drawString(0.75 * inch, y_pos, f"Day: {bill_details['day']}")
-        y_pos -= 0.15 * inch
-        c.drawString(0.75 * inch, y_pos, f"Bill Time: {bill_details['bill_generation_time']}")
-        y_pos -= 0.4 * inch
+        c.drawString(LEFT_RIGHT_MARGIN, y_pos, f"Customer Name: {bill_details['customer_name']}")
+        y_pos -= LINE_SPACING_REGULAR
+        c.drawString(LEFT_RIGHT_MARGIN, y_pos, f"Phone Number: {bill_details['phone_number']}")
+        y_pos -= LINE_SPACING_REGULAR
+        c.drawString(LEFT_RIGHT_MARGIN, y_pos, f"Visit Session: {bill_details['visit_session']}")
+        y_pos -= LINE_SPACING_REGULAR
+        c.drawString(LEFT_RIGHT_MARGIN, y_pos, f"Date: {bill_details['date']}")
+        y_pos -= LINE_SPACING_REGULAR
+        c.drawString(LEFT_RIGHT_MARGIN, y_pos, f"Day: {bill_details['day']}")
+        y_pos -= LINE_SPACING_REGULAR
+        c.drawString(LEFT_RIGHT_MARGIN, y_pos, f"Bill Time: {bill_details['bill_generation_time']}")
+        y_pos -= GAP_LARGE # Large gap after bill details
 
-        # --- Items Ordered Header ---
+        # --- Items Ordered Section ---
         c.setFont("Helvetica-Bold", 10)
-        c.drawString(0.75 * inch, y_pos, "ITEMS ORDERED")
-        y_pos -= 0.2 * inch
+        c.drawString(LEFT_RIGHT_MARGIN, y_pos, "ITEMS ORDERED")
+        y_pos -= GAP_MEDIUM # Medium gap after section title
+
+        # Define X coordinates for table columns (right-aligned for headers/values, left for item name)
+        # This setup tries to mimic the screenshot's column spacing/alignment
+        x_item_left = LEFT_RIGHT_MARGIN
+        x_qty_right = 4.0 * inch # Adjusted to create some space
+        x_price_right = 5.5 * inch # Adjusted to create some space
+        x_total_right = width - LEFT_RIGHT_MARGIN # Aligns with right margin
+
+
         c.setFont("Helvetica-Bold", 9)
-
-        # Define X coordinates for columns
-        item_col_x = 0.75 * inch
-        qty_col_x = 3.5 * inch # Center for Quantity
-        price_col_x = 4.5 * inch # Right-align for Price
-        total_col_x = 5.5 * inch # Right-align for Total
-
         # Column headers
-        c.drawString(item_col_x, y_pos, "Item")
-        c.drawCentredString(qty_col_x, y_pos, "Qty")
-        c.drawRightString(price_col_x, y_pos, "Price (Rs)")
-        c.drawRightString(total_col_x, y_pos, "Total (Rs)")
-        y_pos -= 0.1 * inch
-        c.line(item_col_x, y_pos, width - 0.75 * inch, y_pos) # Horizontal line
-        y_pos -= 0.1 * inch
+        c.drawString(x_item_left, y_pos, "Item")
+        c.drawRightString(x_qty_right, y_pos, "Qty") # Right align Qty
+        c.drawRightString(x_price_right, y_pos, "Price (Rs)")
+        c.drawRightString(x_total_right, y_pos, "Total (Rs)")
+        y_pos -= GAP_SMALL
+        # Horizontal line under headers, spanning from left to right margin
+        c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
+        y_pos -= GAP_SMALL
 
         # --- Itemized List ---
         c.setFont("Helvetica", 9)
         for item_detail in bill_details['items_ordered']:
-            c.drawString(item_col_x, y_pos, item_detail['item'])
-            c.drawCentredString(qty_col_x, y_pos, str(item_detail['quantity']))
-            c.drawRightString(price_col_x, y_pos, f"{item_detail['price_per_unit']:.2f}")
-            c.drawRightString(total_col_x, y_pos, f"{item_detail['total_item_price']:.2f}")
-            y_pos -= 0.15 * inch
+            c.drawString(x_item_left, y_pos, item_detail['item'])
+            c.drawRightString(x_qty_right, y_pos, str(item_detail['quantity']))
+            c.drawRightString(x_price_right, y_pos, f"{item_detail['price_per_unit']:.2f}")
+            c.drawRightString(x_total_right, y_pos, f"{item_detail['total_item_price']:.2f}")
+            y_pos -= LINE_SPACING_REGULAR
 
-        y_pos -= 0.1 * inch
-        c.line(item_col_x, y_pos, width - 0.75 * inch, y_pos) # Horizontal line
-        y_pos -= 0.1 * inch
+        y_pos -= GAP_SMALL
+        # Horizontal line under items, spanning from left to right margin
+        c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
+        y_pos -= GAP_SMALL # Small gap after line
 
         # --- Summary Totals ---
         c.setFont("Helvetica-Bold", 10)
-        # Adjusted positions for summary labels
-        summary_label_x = total_col_x - 1.0*inch # Approximate position for label
-        
-        c.drawRightString(summary_label_x, y_pos, "Subtotal (before discount):")
-        c.drawRightString(total_col_x, y_pos, f"Rs{bill_details['initial_subtotal']:.2f}")
-        y_pos -= 0.15 * inch
+        # Labels will be right-aligned at a point to the left of the values
+        x_summary_label_right = x_total_right - 2.0 * inch # Adjust this distance to space labels from values
 
-        c.drawRightString(summary_label_x, y_pos, f"Total Items:")
-        c.drawRightString(total_col_x, y_pos, str(bill_details['total_items_count']))
-        y_pos -= 0.15 * inch
+        c.drawRightString(x_summary_label_right, y_pos, "Subtotal (before discount):")
+        c.drawRightString(x_total_right, y_pos, f"Rs{bill_details['initial_subtotal']:.2f}")
+        y_pos -= LINE_SPACING_REGULAR
+
+        c.drawRightString(x_summary_label_right, y_pos, f"Total Items:")
+        c.drawRightString(x_total_right, y_pos, str(bill_details['total_items_count']))
+        y_pos -= LINE_SPACING_REGULAR
 
         if bill_details['discount_percentage'] > 0:
-            c.drawRightString(summary_label_x, y_pos, f"Discount Applied ({bill_details['discount_percentage']:.0f}%):")
-            c.drawRightString(total_col_x, y_pos, f"-Rs{bill_details['discount_amount']:.2f}")
-            y_pos -= 0.15 * inch
-            c.drawRightString(summary_label_x, y_pos, "Subtotal (after discount):")
-            c.drawRightString(total_col_x, y_pos, f"Rs{bill_details['subtotal_after_discount']:.2f}")
-            y_pos -= 0.15 * inch
+            c.drawRightString(x_summary_label_right, y_pos, f"Discount Applied ({bill_details['discount_percentage']:.0f}%):")
+            c.drawRightString(x_total_right, y_pos, f"-Rs{bill_details['discount_amount']:.2f}")
+            y_pos -= LINE_SPACING_REGULAR
+            c.drawRightString(x_summary_label_right, y_pos, "Subtotal (after discount):")
+            c.drawRightString(x_total_right, y_pos, f"Rs{bill_details['subtotal_after_discount']:.2f}")
+            y_pos -= LINE_SPACING_REGULAR
         
-        c.drawRightString(summary_label_x, y_pos, "GST (18%):")
-        c.drawRightString(total_col_x, y_pos, f"Rs{bill_details['gst']:.2f}")
-        y_pos -= 0.2 * inch
-        
+        c.drawRightString(x_summary_label_right, y_pos, "GST (18%):")
+        c.drawRightString(x_total_right, y_pos, f"Rs{bill_details['gst']:.2f}")
+        y_pos -= GAP_MEDIUM # Medium gap before total payable
+
         c.setFont("Helvetica-Bold", 12)
-        c.drawRightString(summary_label_x, y_pos, "TOTAL PAYABLE:")
-        c.drawRightString(total_col_x, y_pos, f"Rs{bill_details['total']:.2f}/-")
-        y_pos -= 0.4 * inch
-        c.line(item_col_x, y_pos, width - 0.75 * inch, y_pos) # Horizontal line
-        y_pos -= 0.15 * inch
+        c.drawRightString(x_summary_label_right, y_pos, "TOTAL PAYABLE:")
+        c.drawRightString(x_total_right, y_pos, f"Rs{bill_details['total']:.2f}/-")
+        y_pos -= GAP_LARGE # Large gap after total payable
+        # Horizontal line after total payable
+        c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
+        y_pos -= GAP_MEDIUM # Medium gap after line
+
 
         # --- Footer ---
         c.setFont("Helvetica-Oblique", 9) # Reportlab's standard italic for Helvetica
         c.drawCentredString(width / 2.0, y_pos, "Thank you for visiting Bhakti's Cafe!")
-        y_pos -= 0.15 * inch
+        y_pos -= LINE_SPACING_REGULAR
         c.drawCentredString(width / 2.0, y_pos, "We hope to see you again soon!")
 
-        c.showPage() # Marks the end of the page
+        c.showPage() # Finalize the page
         c.save() # Saves the PDF to the buffer
         buffer.seek(0) # Rewind the buffer to the beginning
         return buffer
 
     except Exception as e:
-        # Catch any error during PDF generation
         st.error(f"An error occurred while generating the PDF bill: {e}")
         return None
 # --- End Reportlab PDF Generation Function ---
 
 
+# --- The rest of your Streamlit UI code remains the same ---
 def generate_and_save_bill(customer_name, customer_phone, current_order, all_menu_items_context, session):
     """Calculates bill, applies discounts, saves customer data, and updates session state for display."""
     initial_subtotal = sum(all_menu_items_context.get(item, 0) * qty for item, qty in current_order.items())
@@ -236,11 +249,11 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
     discount_percentage = 0.0
 
     if total_items_count > 11:
-        discount_percentage = 0.09 # 9% for more than 11 items
+        discount_percentage = 0.09
     elif total_items_count > 8:
-        discount_percentage = 0.06 # 6% for more than 8 items
+        discount_percentage = 0.06
     elif total_items_count > 5:
-        discount_percentage = 0.03 # 3% for more than 5 items
+        discount_percentage = 0.03
 
     discount_amount = round(initial_subtotal * discount_percentage, 2)
     subtotal_after_discount = round(initial_subtotal - discount_amount, 2)
@@ -248,13 +261,11 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
     gst = round(subtotal_after_discount * 0.18, 2)
     total = round(subtotal_after_discount + gst, 2)
 
-    # Capture exact time of bill generation in Asia/Kolkata timezone
     bill_moment_datetime = datetime.now(kolkata_timezone)
     bill_gen_time = bill_moment_datetime.strftime("%H:%M:%S")
     bill_date = bill_moment_datetime.strftime("%d/%m/%Y")
     bill_day = bill_moment_datetime.strftime("%A")
 
-    # Prepare data for session state bill display
     items_ordered_for_display = []
     for item, qty in current_order.items():
         price_per_item = all_menu_items_context.get(item, 0)
@@ -263,7 +274,6 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
             {"item": item, "quantity": qty, "price_per_unit": price_per_item, "total_item_price": item_total}
         )
 
-    # Prepare data for original customer_data.json structure (repeated items for quantity)
     ordered_items_list_for_save = []
     ordered_prices_list_for_save = []
     for item, qty in current_order.items():
@@ -289,7 +299,6 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
         "total": total
     }
 
-    # Save customer record
     customer_data = load_json_data(CUSTOMER_DATA_FILE) or {} # Initialize if file doesn't exist/corrupt
     customer_data[customer_name] = {
         "phone_number": customer_phone,
