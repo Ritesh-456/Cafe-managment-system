@@ -192,7 +192,7 @@ def generate_pdf_bill(bill_details):
     pdf.cell(0, 5, "Thank you for visiting Bhakti's Cafe!", 0, 1, 'C')
     pdf.cell(0, 5, "We hope to see you again soon!", 0, 1, 'C')
 
-    return pdf.output(dest='b') # Changed dest to 'b' (for bytes)
+    return pdf.output(dest='b')
 
 
 def generate_and_save_bill(customer_name, customer_phone, current_order, all_menu_items_context, session):
@@ -241,7 +241,7 @@ def generate_and_save_bill(customer_name, customer_phone, current_order, all_men
 
     st.session_state.last_bill_details = {
         "customer_name": customer_name,
-        "phone_number": phone_number,
+        "phone_number": customer_phone, # FIX: Changed from 'phone_number' to 'customer_phone'
         "visit_session": session,
         "date": bill_date,
         "day": bill_day,
