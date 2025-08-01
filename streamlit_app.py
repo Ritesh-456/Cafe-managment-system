@@ -3,7 +3,13 @@ import json
 from datetime import datetime
 import os
 import pytz # Import the pytz library
-from fpdf import FPDF # Import FPDF for PDF generation
+
+# --- Import for Reportlab PDF generation ---
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch # For easier layout calculations
+import io
+# --- End Reportlab Imports ---
 
 # --- Configuration & File Paths ---
 CAFE_NAME = "Bhakti's Cafe.com"
@@ -100,88 +106,126 @@ def load_menu(file_name):
     """Loads menu from JSON file."""
     return load_json_data(file_name)
 
+# --- Reportlab PDF Generation Function ---
 def generate_pdf_bill(bill_details):
-    """Generates a PDF bill from bill details."""
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=10) # Set a reliable default font
+    """Generates a PDF bill from bill details using Reportlab."""
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter # letter size is 612x792 points
 
     try:
-        # Cafe Header
-        pdf.set_font("Arial", "B", 16) # Use Arial
-        pdf.cell(0, 10, CAFE_NAME, 0, 1, 'C')
-        pdf.set_font("Arial", "", 8) # Use Arial
-        pdf.cell(0, 5, "--- Your Coffee & Delights Destination ---", 0, 1, 'C')
-        pdf.ln(5)
+        # Initial Y position (from top of the page, moving downwards)
+        y_pos = height - 0.75 * inch # Start 0.75 inch from top edge
 
-        # Bill Details
-        pdf.set_font("Arial", "B", 10) # Use Arial
-        pdf.cell(0, 7, "BILL DETAILS", 0, 1, 'L')
-        pdf.set_font("Arial", "", 9) # Use Arial
-        # Ensure all keys accessed here exist in bill_details
-        pdf.cell(0, 5, f"Customer Name: {bill_details['customer_name']}", 0, 1, 'L')
-        pdf.cell(0, 5, f"Phone Number: {bill_details['phone_number']}", 0, 1, 'L')
-        pdf.cell(0, 5, f"Visit Session: {bill_details['visit_session']}", 0, 1, 'L')
-        pdf.cell(0, 5, f"Date: {bill_details['date']}", 0, 1, 'L')
-        pdf.cell(0, 5, f"Day: {bill_details['day']}", 0, 1, 'L')
-        pdf.cell(0, 5, f"Bill Time: {bill_details['bill_generation_time']}", 0, 1, 'L')
-        pdf.ln(5)
+        # --- Cafe Header ---
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(width / 2.0, y_pos, CAFE_NAME)
+        y_pos -= 0.2 * inch
+        c.setFont("Helvetica", 10)
+        c.drawCentredString(width / 2.0, y_pos, "--- Your Coffee & Delights Destination ---")
+        y_pos -= 0.5 * inch
 
-        # Items Ordered Header
-        pdf.set_font("Arial", "B", 10) # Use Arial
-        pdf.cell(0, 7, "ITEMS ORDERED", 0, 1, 'L')
-        pdf.set_font("Arial", "B", 9) # Use Arial
-        pdf.cell(100, 6, "Item", 0, 0, 'L')
-        pdf.cell(20, 6, "Qty", 0, 0, 'C')
-        pdf.cell(30, 6, "Price (Rs)", 0, 0, 'R')
-        pdf.cell(30, 6, "Total (Rs)", 0, 1, 'R')
-        pdf.set_font("Arial", "", 9) # Use Arial
-        pdf.line(pdf.get_x(), pdf.get_y(), 200, pdf.get_y()) # Draw a line
+        # --- Bill Details ---
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(0.75 * inch, y_pos, "BILL DETAILS")
+        y_pos -= 0.2 * inch
+        c.setFont("Helvetica", 9)
+        # Using string interpolation for values
+        c.drawString(0.75 * inch, y_pos, f"Customer Name: {bill_details['customer_name']}")
+        y_pos -= 0.15 * inch
+        c.drawString(0.75 * inch, y_pos, f"Phone Number: {bill_details['phone_number']}")
+        y_pos -= 0.15 * inch
+        c.drawString(0.75 * inch, y_pos, f"Visit Session: {bill_details['visit_session']}")
+        y_pos -= 0.15 * inch
+        c.drawString(0.75 * inch, y_pos, f"Date: {bill_details['date']}")
+        y_pos -= 0.15 * inch
+        c.drawString(0.75 * inch, y_pos, f"Day: {bill_details['day']}")
+        y_pos -= 0.15 * inch
+        c.drawString(0.75 * inch, y_pos, f"Bill Time: {bill_details['bill_generation_time']}")
+        y_pos -= 0.4 * inch
 
-        # Itemized List
+        # --- Items Ordered Header ---
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(0.75 * inch, y_pos, "ITEMS ORDERED")
+        y_pos -= 0.2 * inch
+        c.setFont("Helvetica-Bold", 9)
+
+        # Define X coordinates for columns
+        item_col_x = 0.75 * inch
+        qty_col_x = 3.5 * inch # Center for Quantity
+        price_col_x = 4.5 * inch # Right-align for Price
+        total_col_x = 5.5 * inch # Right-align for Total
+
+        # Column headers
+        c.drawString(item_col_x, y_pos, "Item")
+        c.drawCentredString(qty_col_x, y_pos, "Qty")
+        c.drawRightString(price_col_x, y_pos, "Price (Rs)")
+        c.drawRightString(total_col_x, y_pos, "Total (Rs)")
+        y_pos -= 0.1 * inch
+        c.line(item_col_x, y_pos, width - 0.75 * inch, y_pos) # Horizontal line
+        y_pos -= 0.1 * inch
+
+        # --- Itemized List ---
+        c.setFont("Helvetica", 9)
         for item_detail in bill_details['items_ordered']:
-            pdf.cell(100, 6, item_detail['item'], 0, 0, 'L')
-            pdf.cell(20, 6, str(item_detail['quantity']), 0, 0, 'C')
-            pdf.cell(30, 6, f"{item_detail['price_per_unit']:.2f}", 0, 0, 'R')
-            pdf.cell(30, 6, f"{item_detail['total_item_price']:.2f}", 0, 1, 'R')
-        pdf.ln(2)
-        pdf.line(pdf.get_x(), pdf.get_y(), 200, pdf.get_y()) # Draw a line
-        pdf.ln(2)
+            c.drawString(item_col_x, y_pos, item_detail['item'])
+            c.drawCentredString(qty_col_x, y_pos, str(item_detail['quantity']))
+            c.drawRightString(price_col_x, y_pos, f"{item_detail['price_per_unit']:.2f}")
+            c.drawRightString(total_col_x, y_pos, f"{item_detail['total_item_price']:.2f}")
+            y_pos -= 0.15 * inch
 
-        # Summary Totals
-        pdf.set_font("Arial", "B", 10) # Use Arial
-        pdf.cell(150, 7, "Subtotal (before discount):", 0, 0, 'R')
-        pdf.cell(30, 7, f"Rs{bill_details['initial_subtotal']:.2f}", 0, 1, 'R')
+        y_pos -= 0.1 * inch
+        c.line(item_col_x, y_pos, width - 0.75 * inch, y_pos) # Horizontal line
+        y_pos -= 0.1 * inch
 
-        pdf.cell(150, 5, f"Total Items: {bill_details['total_items_count']}", 0, 1, 'R')
+        # --- Summary Totals ---
+        c.setFont("Helvetica-Bold", 10)
+        # Adjusted positions for summary labels
+        summary_label_x = total_col_x - 1.0*inch # Approximate position for label
+        
+        c.drawRightString(summary_label_x, y_pos, "Subtotal (before discount):")
+        c.drawRightString(total_col_x, y_pos, f"Rs{bill_details['initial_subtotal']:.2f}")
+        y_pos -= 0.15 * inch
+
+        c.drawRightString(summary_label_x, y_pos, f"Total Items:")
+        c.drawRightString(total_col_x, y_pos, str(bill_details['total_items_count']))
+        y_pos -= 0.15 * inch
 
         if bill_details['discount_percentage'] > 0:
-            pdf.cell(150, 7, f"Discount Applied ({bill_details['discount_percentage']:.0f}%):", 0, 0, 'R')
-            pdf.cell(30, 7, f"-Rs{bill_details['discount_amount']:.2f}", 0, 1, 'R')
-            pdf.cell(150, 7, "Subtotal (after discount):", 0, 0, 'R')
-            pdf.cell(30, 7, f"Rs{bill_details['subtotal_after_discount']:.2f}", 0, 1, 'R')
+            c.drawRightString(summary_label_x, y_pos, f"Discount Applied ({bill_details['discount_percentage']:.0f}%):")
+            c.drawRightString(total_col_x, y_pos, f"-Rs{bill_details['discount_amount']:.2f}")
+            y_pos -= 0.15 * inch
+            c.drawRightString(summary_label_x, y_pos, "Subtotal (after discount):")
+            c.drawRightString(total_col_x, y_pos, f"Rs{bill_details['subtotal_after_discount']:.2f}")
+            y_pos -= 0.15 * inch
+        
+        c.drawRightString(summary_label_x, y_pos, "GST (18%):")
+        c.drawRightString(total_col_x, y_pos, f"Rs{bill_details['gst']:.2f}")
+        y_pos -= 0.2 * inch
+        
+        c.setFont("Helvetica-Bold", 12)
+        c.drawRightString(summary_label_x, y_pos, "TOTAL PAYABLE:")
+        c.drawRightString(total_col_x, y_pos, f"Rs{bill_details['total']:.2f}/-")
+        y_pos -= 0.4 * inch
+        c.line(item_col_x, y_pos, width - 0.75 * inch, y_pos) # Horizontal line
+        y_pos -= 0.15 * inch
 
-        pdf.cell(150, 7, "GST (18%):", 0, 0, 'R')
-        pdf.cell(30, 7, f"Rs{bill_details['gst']:.2f}", 0, 1, 'R')
+        # --- Footer ---
+        c.setFont("Helvetica-Oblique", 9) # Reportlab's standard italic for Helvetica
+        c.drawCentredString(width / 2.0, y_pos, "Thank you for visiting Bhakti's Cafe!")
+        y_pos -= 0.15 * inch
+        c.drawCentredString(width / 2.0, y_pos, "We hope to see you again soon!")
 
-        pdf.set_font("Arial", "B", 12) # Use Arial
-        pdf.cell(150, 10, "TOTAL PAYABLE:", 0, 0, 'R')
-        pdf.cell(30, 10, f"Rs{bill_details['total']:.2f}/-", 0, 1, 'R')
-        pdf.ln(5)
-        pdf.line(pdf.get_x(), pdf.get_y(), 200, pdf.get_y()) # Draw a line
-        pdf.ln(5)
-
-        # Footer
-        pdf.set_font("Arial", "I", 9) # Use Arial for italic
-        pdf.cell(0, 5, "Thank you for visiting Bhakti's Cafe!", 0, 1, 'C')
-        pdf.cell(0, 5, "We hope to see you again soon!", 0, 1, 'C')
-
-        return pdf.output(dest='b')
+        c.showPage() # Marks the end of the page
+        c.save() # Saves the PDF to the buffer
+        buffer.seek(0) # Rewind the buffer to the beginning
+        return buffer
 
     except Exception as e:
-        # Catch any other error during PDF content generation or output
-        st.error(f"An error occurred while generating the PDF bill content: {e}")
-        return None # Explicitly return None if an error occurs
+        # Catch any error during PDF generation
+        st.error(f"An error occurred while generating the PDF bill: {e}")
+        return None
+# --- End Reportlab PDF Generation Function ---
 
 
 def generate_and_save_bill(customer_name, customer_phone, current_order, all_menu_items_context, session):
@@ -382,13 +426,13 @@ else: # Cafe is OPEN
         st.markdown("=============================")
 
         # PDF Download Button
-        pdf_bytes = generate_pdf_bill(bill)
-        # Check if pdf_bytes is None (due to an error in generate_pdf_bill)
-        if pdf_bytes is not None:
+        pdf_buffer = generate_pdf_bill(bill) # Changed pdf_bytes to pdf_buffer for consistency with Reportlab
+        # Check if pdf_buffer is None (due to an error in generate_pdf_bill)
+        if pdf_buffer is not None:
             bill_filename = f"Bhakti_Cafe_Bill_{bill['customer_name'].replace(' ', '_')}_{bill['date'].replace('/', '-')}.pdf"
             st.download_button(
                 label="Download Bill as PDF",
-                data=pdf_bytes,
+                data=pdf_buffer, # Pass the BytesIO object
                 file_name=bill_filename,
                 mime="application/pdf",
                 type="secondary"
