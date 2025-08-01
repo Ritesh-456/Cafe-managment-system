@@ -111,7 +111,7 @@ def generate_pdf_bill(bill_details):
     """Generates a PDF bill from bill details using Reportlab."""
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter  # letter size is 612x792 points
+    width, height = letter  # 612 x 792 pts
 
     try:
         # === Layout Constants ===
@@ -122,7 +122,6 @@ def generate_pdf_bill(bill_details):
         GAP_MEDIUM = 0.25 * inch
         GAP_LARGE = 0.5 * inch
 
-        # === Start Drawing ===
         y_pos = TOP_INITIAL_Y
 
         # === Header ===
@@ -157,23 +156,21 @@ def generate_pdf_bill(bill_details):
         c.drawString(LEFT_RIGHT_MARGIN, y_pos, "ITEMS ORDERED")
         y_pos -= GAP_MEDIUM
 
-        # Column positions
         x_item_left = LEFT_RIGHT_MARGIN
         x_qty_right = 4.0 * inch
         x_price_right = 5.5 * inch
         x_total_right = width - LEFT_RIGHT_MARGIN
 
-        # Table headers
         c.setFont("Helvetica-Bold", 9)
         c.drawString(x_item_left, y_pos, "Item")
         c.drawRightString(x_qty_right, y_pos, "Qty")
         c.drawRightString(x_price_right, y_pos, "Price (Rs)")
         c.drawRightString(x_total_right, y_pos, "Total (Rs)")
-        y_pos -= GAP_SMALL + 3  # Added space before line
+        y_pos -= GAP_SMALL + 3
         c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
-        y_pos -= GAP_SMALL + 2  # Added space after line
+        y_pos -= GAP_SMALL + 2
 
-        # Items list
+        # === Items List ===
         c.setFont("Helvetica", 9)
         for item in bill_details['items_ordered']:
             c.drawString(x_item_left, y_pos, item['item'])
@@ -182,9 +179,9 @@ def generate_pdf_bill(bill_details):
             c.drawRightString(x_total_right, y_pos, f"{item['total_item_price']:.2f}")
             y_pos -= LINE_SPACING_REGULAR
 
-        y_pos -= GAP_SMALL + 3  # Extra spacing before bottom line
+        y_pos -= GAP_SMALL + 3
         c.line(LEFT_RIGHT_MARGIN, y_pos, width - LEFT_RIGHT_MARGIN, y_pos)
-        y_pos -= GAP_SMALL + 2  # Space after line
+        y_pos -= GAP_SMALL + 2
 
         # === Summary Section ===
         x_label = x_total_right - 2.0 * inch
@@ -222,15 +219,15 @@ def generate_pdf_bill(bill_details):
         # === Footer ===
         c.setFont("Helvetica-Oblique", 9)
         c.drawCentredString(width / 2.0, y_pos, "Thank you for visiting Bhakti's Cafe!")
-        y_pos -= LINE_SPACING_REGULAR
+        y_pos -= LINE_SPACING_REGULAR * 0.8
         c.drawCentredString(width / 2.0, y_pos, "We hope to see you again soon!")
-        y_pos -= LINE_SPACING_REGULAR
+        y_pos -= LINE_SPACING_REGULAR * 0.8
 
-        # === Website and Store Contact ===
+        # === Website + Contact Info ===
         c.setFont("Helvetica", 8)
         c.drawCentredString(width / 2.0, y_pos, "For more checkouts: https://bhaktis-cafe.streamlit.app/")
-        y_pos -= LINE_SPACING_REGULAR
-        c.drawCentredString(width / 2.0, y_pos, "Store Contact: +91-894613066 (Bhakti's Cafe, Marathahalli, Bangalore)")
+        y_pos -= LINE_SPACING_REGULAR * 0.75
+        c.drawCentredString(width / 2.0, y_pos, "📍 Store Contact: +91-894613066 (Bhakti's Cafe, Marathahalli, Bangalore)")
 
         # === Finalize PDF ===
         c.showPage()
