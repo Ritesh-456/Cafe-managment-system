@@ -57,7 +57,7 @@ def load_cafe_config():
             st.error(f"Configuration file '{CONFIG_FILE}' is missing required time keys (e.g., 'day_start', 'day_end', 'evening_start', 'evening_end').")
             return None
         except ValueError:
-            st.error(f"Configuration file '{CONFIG_FILE}' contains invalid time formats. Use HH:MM:%S (e.g., '10:00:00').")
+            st.error(f"Configuration file '{CONFIG_FILE}' contains invalid time formats. Use HH:MM:SS (e.g., '10:00:00').")
             return None
     else:
         st.error(f"Configuration file '{CONFIG_FILE}' not found or is empty/corrupted.")
@@ -110,10 +110,12 @@ def generate_pdf_bill(bill_details):
     try:
         pdf.add_font('DejaVuSans', '', 'DejaVuSans.ttf', uni=True)
         pdf.add_font('DejaVuSans', 'B', 'DejaVuSans-Bold.ttf', uni=True) # If you have a bold version
-    except RuntimeError:
+        pdf.set_font("DejaVuSans", size=10) # Use DejaVuSans if successfully loaded
+    except RuntimeError as e:
         # If font files are missing, fallback to Arial but expect encoding issues
-        st.warning("DejaVuSans.ttf not found. Using default font, which might not support all characters (e.g., ₹).")
-        pdf.set_font("Arial", size=10) # Fallback
+        st.error(f"PDF font error: {e}. Please ensure 'DejaVuSans.ttf' and 'DejaVuSans-Bold.ttf' are in the same directory as this script for full Unicode (e.g., ₹) support.")
+        st.warning("Using default PDF font, which might not display all characters correctly.")
+        pdf.set_font("Arial", size=10) # Fallback to default Arial
     # -----------------------------------
 
     # Cafe Header
@@ -551,8 +553,6 @@ else: # Cafe is OPEN
                 st.info("Your order is empty. Please select items from the menu.")
 
 # --- Global "Start New Customer Order" Button (always visible if an order is active) ---
-# This button provides an escape hatch to start fresh even if no bill was generated.
-# It only shows if there's an active customer or order, or a bill displayed.
 if not st.session_state.show_bill and st.session_state.wants_to_order != False and (st.session_state.customer_name or st.session_state.current_order):
     st.markdown("---") 
     if st.button("Start New Customer Order", key="start_new_customer_global"):
