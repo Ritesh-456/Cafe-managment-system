@@ -76,9 +76,9 @@ Your data are temporary. If the system sleeps (Streamlit Cloud timeout), it will
 ---
 
 
-##🚀 Getting Started
+## 🚀 Getting Started
 
-###🔧 Requirements
+### 🔧 Requirements
 
 Install Python libraries:
 ```bash
