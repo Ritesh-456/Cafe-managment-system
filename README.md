@@ -72,3 +72,23 @@ NOTE:
 Your data are temporary. If the system sleeps (Streamlit Cloud timeout), it will clear all your details.
 
 > 🔁 To persist your data permanently, fork the project and run it locally.
+
+---
+
+
+##🚀 Getting Started
+
+###🔧 Requirements
+
+Install Python libraries:
+```bash
+
+pip install streamlit reportlab pytz
+```
+
+▶️ Run the App
+```bash
+
+streamlit run app.py
+```
+---
