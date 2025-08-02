@@ -63,6 +63,8 @@ Edit `config.json` to set café opening/closing times:
   "evening_start": "16:00:00",
   "evening_end": "21:30:00"
 }
+```
+---
 
 ##📝 Local Storage Notice
 
