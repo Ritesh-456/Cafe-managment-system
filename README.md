@@ -59,7 +59,7 @@ Edit `config.json` to set café opening/closing times:
 ```json
 {
   "day_start": "09:00:00",
-  "day_end": "13:00:00",
+  "day_end": "14:00:00",
   "evening_start": "16:00:00",
   "evening_end": "21:30:00"
 }
@@ -91,4 +91,35 @@ pip install streamlit reportlab pytz
 
 streamlit run app.py
 ```
+
+---
+
+## 🏷️ Tags
+
+Streamlit Cafe Management PDF Bill Reportlab Dynamic Menu Python Project Customer Orders GST Calculation Billing App Time-based Logic
+
+
+---
+
+## 💡 Future Scope
+
+Admin dashboard for managing menu & sales reports
+
+Email/SMS receipts via integration
+
+Cloud database (Firebase / MongoDB)
+
+QR Code-based Order Tracking
+
+
+
+---
+
+## 👩‍💻 Developed By
+
+©Ritesh-456
+
+> **Live Demo:** [Bhakti's Cafe on Streamlit](https://bhaktis-cafe.streamlit.app/)
+
+
 ---
