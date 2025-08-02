@@ -66,7 +66,7 @@ Edit `config.json` to set café opening/closing times:
 ```
 ---
 
-##📝 Local Storage Notice
+## 📝 Local Storage Notice
 
 NOTE:
 Your data are temporary. If the system sleeps (Streamlit Cloud timeout), it will clear all your details.
