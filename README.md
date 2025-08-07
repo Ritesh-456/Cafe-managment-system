@@ -12,7 +12,14 @@ This is a complete **Streamlit-based Café Management App** that allows users to
 
 ## 📂 Project Structurec
 ```bash
-📁 Bhakti_Cafe/ │ ├── customer_data.json        # Stores customer order history ├── config.json               # Defines day & evening café hours ├── day.json                  # Menu items for the Day session ├── evening.json              # Menu items for the Evening session ├── app.py                    # Main Streamlit application └── requirements.txt          # Dependencies
+📁 Bhakti_Cafe/ 
+│ 
+├── customer_data.json        # Stores customer order history 
+├── config.json               # Defines day & evening café hours 
+├── day.json                  # Menu items for the Day session 
+├── evening.json              # Menu items for the Evening session 
+├── app.py                    # Main Streamlit application 
+└── requirements.txt          # Dependencies
 ```
 ---
 
@@ -70,9 +77,7 @@ Edit `config.json` to set café opening/closing times:
 
 NOTE:
 Your data are temporary. If the system sleeps (Streamlit Cloud timeout), it will clear all your details.
-
 > 🔁 To persist your data permanently, fork the project and run it locally.
-
 ---
 
 
@@ -82,13 +87,11 @@ Your data are temporary. If the system sleeps (Streamlit Cloud timeout), it will
 
 Install Python libraries:
 ```bash
-
 pip install streamlit reportlab pytz
 ```
 
 ▶️ Run the App
 ```bash
-
 streamlit run app.py
 ```
 
@@ -111,8 +114,6 @@ Cloud database (Firebase / MongoDB)
 
 QR Code-based Order Tracking
 
-
-
 ---
 
 ## 👩‍💻 Developed By
@@ -120,6 +121,4 @@ QR Code-based Order Tracking
 ©Ritesh-456
 
 > **Live Demo:** [Bhakti's Cafe on Streamlit](https://bhaktis-cafe.streamlit.app/)
-
-
 ---
