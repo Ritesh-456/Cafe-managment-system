@@ -225,7 +225,7 @@ def generate_pdf_bill(bill_details):
 
         # === Website + Contact Info ===
         c.setFont("Helvetica", 8)
-        c.drawCentredString(width / 2.0, y_pos, "For more checkouts: https://bhaktis-cafe.streamlit.app/")
+        c.drawCentredString(width / 2.0, y_pos, "For more checkouts: https://dill-khus-cafe.streamlit.app/")
         y_pos -= LINE_SPACING_REGULAR * 0.75
         c.drawCentredString(width / 2.0, y_pos, "📍 Store Contact: +91-894613066 (Dill Khus Cafe, Marathahalli, Bangalore)")
 
@@ -440,7 +440,7 @@ else: # Cafe is OPEN
         pdf_buffer = generate_pdf_bill(bill) # Changed pdf_bytes to pdf_buffer for consistency with Reportlab
         # Check if pdf_buffer is None (due to an error in generate_pdf_bill)
         if pdf_buffer is not None:
-            bill_filename = f"Bhakti_Cafe_Bill_{bill['customer_name'].replace(' ', '_')}_{bill['date'].replace('/', '-')}.pdf"
+            bill_filename = f"Dill_Khus_Cafe_Bill_{bill['customer_name'].replace(' ', '_')}_{bill['date'].replace('/', '-')}.pdf"
             st.download_button(
                 label="Download Bill as PDF",
                 data=pdf_buffer, # Pass the BytesIO object
