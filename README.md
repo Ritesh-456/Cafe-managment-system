@@ -1,4 +1,4 @@
-# ☕ Bhakti's Cafe Management System
+# ☕ Dill Khus Cafe Management System
 
 This is a complete **Streamlit-based Café Management App** that allows users to:
 - Place orders from a time-sensitive menu (Day / Evening)
@@ -6,7 +6,7 @@ This is a complete **Streamlit-based Café Management App** that allows users to
 - Generate downloadable **PDF bills**
 - Save customer order history (locally in `customer_data.json`)
 
-> **Live Demo:** [Bhakti's Cafe on Streamlit](https://bhaktis-cafe.streamlit.app/)
+> **Live Demo:** [Dill Khus Cafe on Streamlit](https://bhaktis-cafe.streamlit.app/)
 
 ---
 
@@ -120,5 +120,5 @@ QR Code-based Order Tracking
 
 ©Ritesh-456
 
-> **Live Demo:** [Bhakti's Cafe on Streamlit](https://bhaktis-cafe.streamlit.app/)
+> **Live Demo:** [Dill Khus Cafe on Streamlit](https://bhaktis-cafe.streamlit.app/)
 ---

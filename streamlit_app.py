@@ -12,7 +12,7 @@ import io
 # --- End Reportlab Imports ---
 
 # --- Configuration & File Paths ---
-CAFE_NAME = "Bhakti's Cafe.com"
+CAFE_NAME = "Dill Khus Cafe.com"
 CUSTOMER_DATA_FILE = "customer_data.json"
 CONFIG_FILE = "config.json" # Centralized config file for cafe hours
 
@@ -218,7 +218,7 @@ def generate_pdf_bill(bill_details):
 
         # === Footer ===
         c.setFont("Helvetica-Oblique", 9)
-        c.drawCentredString(width / 2.0, y_pos, "Thank you for visiting Bhakti's Cafe!")
+        c.drawCentredString(width / 2.0, y_pos, "Thank you for visiting Dill Khus Cafe!")
         y_pos -= LINE_SPACING_REGULAR * 0.8
         c.drawCentredString(width / 2.0, y_pos, "We hope to see you again soon!")
         y_pos -= LINE_SPACING_REGULAR * 0.8
@@ -227,7 +227,7 @@ def generate_pdf_bill(bill_details):
         c.setFont("Helvetica", 8)
         c.drawCentredString(width / 2.0, y_pos, "For more checkouts: https://bhaktis-cafe.streamlit.app/")
         y_pos -= LINE_SPACING_REGULAR * 0.75
-        c.drawCentredString(width / 2.0, y_pos, "📍 Store Contact: +91-894613066 (Bhakti's Cafe, Marathahalli, Bangalore)")
+        c.drawCentredString(width / 2.0, y_pos, "📍 Store Contact: +91-894613066 (Dill Khus Cafe, Marathahalli, Bangalore)")
 
         # === Finalize PDF ===
         c.showPage()
